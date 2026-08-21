@@ -28,12 +28,12 @@ public class NativeDumper {
 
     static {
         try {
-            // Native dumper is compiled into libblackbox.so
-            System.loadLibrary("blackbox");
+            // Load the dedicated IL2CPP dumper .so
+            System.loadLibrary("il2cpp_dumper");
             sLoaded = true;
-            Log.i(TAG, "Native dumper loaded via libblackbox.so");
+            Log.i(TAG, "Native dumper libil2cpp_dumper.so loaded");
         } catch (UnsatisfiedLinkError e) {
-            Log.e(TAG, "Failed to load native dumper: " + e.getMessage());
+            Log.e(TAG, "Failed to load il2cpp_dumper: " + e.getMessage());
             sLoaded = false;
         }
     }

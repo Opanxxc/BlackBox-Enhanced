@@ -42,8 +42,7 @@ Hook/VMClassLoaderHook.cpp \
 Hook/UnixFileSystemHook.cpp \
 Hook/BinderHook.cpp \
 Hook/BaseHook.cpp \
-JniHook/JniHook.cpp \
-../jni/dumper/il2cpp_runtime_dumper.cpp
+JniHook/JniHook.cpp
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 LOCAL_CFLAGS += -Wno-error=format-security -fvisibility=hidden -ffunction-sections -fdata-sections -w -std=c++17
@@ -54,4 +53,15 @@ LOCAL_ARM_MODE := arm
 LOCAL_CPP_FEATURES := exceptions
 LOCAL_STATIC_LIBRARIES := libdobby xdl
 LOCAL_LDLIBS := -llog -landroid -lz
+include $(BUILD_SHARED_LIBRARY)
+
+# ==================== IL2CPP DUMPER MODULE ====================
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := il2cpp_dumper
+LOCAL_SRC_FILES := ../jni/dumper/main.cpp
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../jni/dumper
+LOCAL_CFLAGS += -std=c++17 -w -fvisibility=hidden
+LOCAL_CPPFLAGS += -std=c++17 -w -fvisibility=hidden -fexceptions
+LOCAL_LDLIBS := -llog -landroid
 include $(BUILD_SHARED_LIBRARY)
