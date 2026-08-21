@@ -625,8 +625,8 @@ public class AppDumperService implements ISystemService {
                     dataDir.getAbsolutePath(),
                     new File(dataDir, "files").getAbsolutePath(),
                     new File(dataDir, "obb").getAbsolutePath(),
-                    Environment.getExternalStoragePublicDirectory("Android/obb/" + pkg).getAbsolutePath(),
-                    Environment.getExternalStoragePublicDirectory("Android/data/" + pkg).getAbsolutePath()
+                    "/storage/emulated/0/Android/obb/" + pkg,
+                    "/storage/emulated/0/Android/data/" + pkg
                 };
                 for (String dir : searchDirs) {
                     File d = new File(dir);
