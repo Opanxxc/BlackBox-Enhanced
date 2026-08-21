@@ -5,7 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import top.niunaijun.blackboxa.data.GmsRepository
 
 
-class @Suppress("UNCHECKED_CAST") GmsFactory(private val repo:GmsRepository): ViewModelProvider.NewInstanceFactory() {
+@Suppress("UNCHECKED_CAST")
+class GmsFactory(private val repo:GmsRepository): ViewModelProvider.NewInstanceFactory() {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return GmsViewModel(repo) as T

@@ -7,7 +7,8 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 
-open @Suppress("UNCHECKED_CAST") class AppSharedPreferenceDelegate<Data>(
+@Suppress("UNCHECKED_CAST")
+open class AppSharedPreferenceDelegate<Data>(
         context: Context,
         private val default: Data,
         spName: String? = null
