@@ -647,7 +647,7 @@ public class AppDumperService implements ISystemService {
                         }
                         sb.append("fields: ").append(cls.fieldCount).append(", methods: ").append(cls.methodCount).append("\n");
                         
-                        sb.append("[Il2CppDummyDll.ClassMetadata("0x").append(String.format("%08x", cls.index * 0x100)).append("")]\n");
+                        sb.append("[Il2CppDummyDll.ClassMetadata(").append("0x").append(String.format("%08x", cls.index * 0x100)).append(")]\n");
                         
                         // Parent class
                         String parent = "Il2CppObject";
