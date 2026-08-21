@@ -33,9 +33,9 @@ android {
             def ksFile = file("release.keystore")
             if (ksFile.exists()) {
                 storeFile ksFile
-                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "blackbox123"
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "android123"
                 keyAlias System.getenv("KEY_ALIAS") ?: "blackbox"
-                keyPassword System.getenv("KEY_PASSWORD") ?: "blackbox123"
+                keyPassword System.getenv("KEY_PASSWORD") ?: "android123"
             } else {
                 // Fallback to debug signing if keystore not found
                 storeFile debug.keyStoreFile

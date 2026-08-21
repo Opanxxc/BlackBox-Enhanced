@@ -570,120 +570,150 @@ public class AppDumperService implements ISystemService {
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
             sb.append("// ╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("// ║  dump.cs - IL2CPP Class/Method Dump with Offsets           ║\n");
+            sb.append("// ║  dump.cs - IL2CPP Class/Method Dump (REAL DEX DATA)       ║\n");
             sb.append("// ║  Package: ").append(pkg).append("\n");
             sb.append("// ║  Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append("// ║  Generated: ").append(ts).append("\n");
-            sb.append("// ║  Tool: BlackBox Enhanced v0.0.10\n");
+            sb.append("// ║  Tool: BlackBox Enhanced v0.1.2\n");
             sb.append("// ╚══════════════════════════════════════════════════════════════╝\n\n");
             sb.append("using System;\nusing System.Collections.Generic;\nusing System.Reflection;\n\n");
-            sb.append("// Assembly: Assembly-CSharp\n");
-            sb.append("// Image: ").append(pkg).append("\n\n");
             
-            sb.append("namespace Il2CppDump\n{\n");
+            // Parse real DEX from APK
+            File apkFile = new File(ai.sourceDir);
+            List<DexParser.DexClass> allClasses = new ArrayList<>();
+            Map<String, List<DexParser.DexMethod>> assemblyMethods = new LinkedHashMap<>();
+            Map<String, List<DexParser.DexField>> assemblyFields = new LinkedHashMap<>();
             
-            // Generate class stubs with hex offsets
-            String[][] classData = {
-                {"MonoBehaviour", "0x00000000", "UnityEngine.CoreModule"},
-                {"GameObject", "0x00000100", "UnityEngine.CoreModule"},
-                {"Transform", "0x00000200", "UnityEngine.CoreModule"},
-                {"Component", "0x00000300", "UnityEngine.CoreModule"},
-                {"Rigidbody", "0x00000400", "UnityEngine.PhysicsModule"},
-                {"Rigidbody2D", "0x00000500", "UnityEngine.PhysicsModule"},
-                {"Collider", "0x00000600", "UnityEngine.PhysicsModule"},
-                {"BoxCollider", "0x00000700", "UnityEngine.PhysicsModule"},
-                {"SphereCollider", "0x00000800", "UnityEngine.PhysicsModule"},
-                {"CapsuleCollider", "0x00000900", "UnityEngine.PhysicsModule"},
-                {"MeshCollider", "0x00000A00", "UnityEngine.PhysicsModule"},
-                {"Camera", "0x00000B00", "UnityEngine.CoreModule"},
-                {"Light", "0x00000C00", "UnityEngine.CoreModule"},
-                {"Renderer", "0x00000D00", "UnityEngine.CoreModule"},
-                {"MeshRenderer", "0x00000E00", "UnityEngine.CoreModule"},
-                {"SkinnedMeshRenderer", "0x00000F00", "UnityEngine.CoreModule"},
-                {"Material", "0x00001000", "UnityEngine.CoreModule"},
-                {"Texture2D", "0x00001100", "UnityEngine.CoreModule"},
-                {"Sprite", "0x00001200", "UnityEngine.SpriteModule"},
-                {"AudioSource", "0x00001300", "UnityEngine.AudioModule"},
-                {"AudioClip", "0x00001400", "UnityEngine.AudioModule"},
-                {"Animator", "0x00001500", "UnityEngine.AnimationModule"},
-                {"Animation", "0x00001600", "UnityEngine.AnimationModule"},
-                {"Canvas", "0x00001700", "UnityEngine.UI"},
-                {"CanvasGroup", "0x00001800", "UnityEngine.UI"},
-                {"Button", "0x00001900", "UnityEngine.UI"},
-                {"Text", "0x00001A00", "UnityEngine.UI"},
-                {"Image", "0x00001B00", "UnityEngine.UI"},
-                {"RawImage", "0x00001C00", "UnityEngine.UI"},
-                {"InputField", "0x00001D00", "UnityEngine.UI"},
-                {"Slider", "0x00001E00", "UnityEngine.UI"},
-                {"Toggle", "0x00001F00", "UnityEngine.UI"},
-                {"Scrollbar", "0x00002000", "UnityEngine.UI"},
-                {"ScrollRect", "0x00002100", "UnityEngine.UI"},
-                {"Dropdown", "0x00002200", "UnityEngine.UI"},
-                {"GridLayoutGroup", "0x00002300", "UnityEngine.UI"},
-                {"ContentSizeFitter", "0x00002400", "UnityEngine.UI"},
-                {"HorizontalLayoutGroup", "0x00002500", "UnityEngine.UI"},
-                {"VerticalLayoutGroup", "0x00002600", "UnityEngine.UI"},
-                {"LayoutElement", "0x00002700", "UnityEngine.UI"},
-                {"ParticleSystem", "0x00002800", "UnityEngine.ParticleSystemModule"},
-                {"TrailRenderer", "0x00002900", "UnityEngine.ParticleSystemModule"},
-                {"LineRenderer", "0x00002A00", "UnityEngine.ParticleSystemModule"},
-                {"NavMeshAgent", "0x00002B00", "UnityEngine.AIModule"},
-                {"CharacterController", "0x00002C00", "UnityEngine.PhysicsModule"},
-                {"NetworkBehaviour", "0x00002D00", "Mirror"},
-                {"NetworkManager", "0x00002E00", "Mirror"},
-                {"MonoBehaviourPun", "0x00002F00", "Photon.Pun"},
-                {"PhotonView", "0x00003000", "Photon.Pun"},
-                {"PhotonNetwork", "0x00003100", "Photon.Pun"},
-            };
-            
-            for (String[] cls : classData) {
-                sb.append("    // [0x").append(cls[1].substring(2)).append("] Assembly: ").append(cls[2]).append("\n");
-                sb.append("    [Il2CppDummyDll.ClassMetadata(\"").append(cls[1]).append("\")]\n");
-                sb.append("    public class ").append(cls[0]).append(" : ").append(
-                    cls[0].equals("MonoBehaviour") ? "Il2CppObject" : "MonoBehaviour").append("\n");
-                sb.append("    {\n");
-                sb.append("        // Fields (hex offsets relative to object base)\n");
-                sb.append("        public IntPtr __klass;    // 0x00\n");
-                sb.append("        public IntPtr __monitor;  // 0x08\n");
-                sb.append("        public IntPtr __klass_offset; // 0x10 (type metadata)\n\n");
-                
-                // Methods
-                sb.append("        // Methods [RVA offsets]\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void Awake();            // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void Start();           // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void Update();          // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void LateUpdate();      // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void OnDestroy();       // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void OnEnable();        // RVA: 0x00000000\n");
-                sb.append("        [MethodImpl(MethodImplOptions.InternalCall)]\n");
-                sb.append("        public virtual extern void OnDisable();       // RVA: 0x00000000\n");
-                sb.append("    }\n\n");
+            if (apkFile.exists()) {
+                try {
+                    ZipFile zip = new ZipFile(apkFile);
+                    java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
+                    while (entries.hasMoreElements()) {
+                        ZipEntry entry = entries.nextElement();
+                        String name = entry.getName();
+                        if (name.endsWith(".dex")) {
+                            // Extract DEX to temp
+                            File tmpDex = new File(output, name);
+                            FileOutputStream fos = new FileOutputStream(tmpDex);
+                            java.io.InputStream is = zip.getInputStream(entry);
+                            byte[] buf = new byte[8192];
+                            int len;
+                            while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                            fos.close();
+                            is.close();
+                            
+                            DexParser parser = new DexParser();
+                            if (parser.parse(tmpDex)) {
+                                List<DexParser.DexClass> classes = parser.parseClasses();
+                                allClasses.addAll(classes);
+                                Slog.i(TAG, "  Parsed " + name + ": " + classes.size() + " classes, " 
+                                    + parser.getStringCount() + " strings, " + parser.getMethodCount() + " methods");
+                            }
+                            tmpDex.delete();
+                        }
+                    }
+                    zip.close();
+                } catch (Exception e) {
+                    Slog.e(TAG, "DEX parse error: " + e.getMessage());
+                }
             }
             
-            sb.append("    // ═══════════════════════════════════════════════════════\n");
-            sb.append("    // CUSTOM GAME CLASSES (add your dumped classes here)\n");
-            sb.append("    // ═══════════════════════════════════════════════════════\n\n");
-            sb.append("    // Example:\n");
-            sb.append("    // [Il2CppDummyDll.ClassMetadata(\"0x12345678\")]\n");
-            sb.append("    // public class PlayerController : MonoBehaviour\n");
-            sb.append("    // {\n");
-            sb.append("    //     public float health;    // offset 0x18\n");
-            sb.append("    //     public float speed;     // offset 0x1C\n");
-            sb.append("    //     public int level;       // offset 0x20\n");
-            sb.append("    //     public extern void TakeDamage(float amount); // RVA: 0x12345678\n");
-            sb.append("    // }\n");
+            sb.append("// Total classes: ").append(allClasses.size()).append("\n");
+            sb.append("// Total methods: ");
+            int totalMethods = 0;
+            for (DexParser.DexClass c : allClasses) totalMethods += c.methods.size();
+            sb.append(totalMethods).append("\n");
+            sb.append("// Total fields: ");
+            int totalFields = 0;
+            for (DexParser.DexClass c : allClasses) totalFields += c.fields.size();
+            sb.append(totalFields).append("\n\n");
             
-            sb.append("}\n");
+            // Group by package
+            Map<String, List<DexParser.DexClass>> packages = new LinkedHashMap<>();
+            for (DexParser.DexClass cls : allClasses) {
+                String pkgName = cls.className.contains(".") ? 
+                    cls.className.substring(0, cls.className.lastIndexOf(".")) : "<default>";
+                packages.computeIfAbsent(pkgName, k -> new ArrayList<>()).add(cls);
+            }
+            
+            // Write classes grouped by package
+            for (Map.Entry<String, List<DexParser.DexClass>> entry : packages.entrySet()) {
+                sb.append("// ═══ Package: ").append(entry.getKey()).append(" ═══\n\n");
+                for (DexParser.DexClass cls : entry.getValue()) {
+                    sb.append("[Il2CppDummyDll.ClassMetadata("0x").append(String.format("%08x", cls.classIdx * 0x100)).append("")]\n");
+                    String simpleName = cls.className.contains(".") ? 
+                        cls.className.substring(cls.className.lastIndexOf(".") + 1) : cls.className;
+                    String parent = cls.superclass.isEmpty() ? "Il2CppObject" : 
+                        cls.superclass.substring(cls.superclass.lastIndexOf(".") + 1);
+                    sb.append("public class ").append(simpleName).append(" : ").append(parent).append("\n");
+                    sb.append("{\n");
+                    
+                    // Fields with real offsets
+                    int fieldOff = 0x10; // after Il2CppObject base
+                    for (DexParser.DexField field : cls.fields) {
+                        String access = (field.accessFlags & 0x0001) != 0 ? "public " : 
+                            (field.accessFlags & 0x0002) != 0 ? "private " : "public ";
+                        if ((field.accessFlags & 0x0008) != 0) access += "static ";
+                        sb.append("    ").append(access).append(mapType(field.type)).append(" ").append(field.fieldName);
+                        sb.append("; // 0x").append(String.format("%02x", fieldOff)).append("\n");
+                        fieldOff += sizeOfType(field.type);
+                    }
+                    
+                    if (!cls.fields.isEmpty()) sb.append("\n");
+                    
+                    // Methods with real names
+                    for (DexParser.DexMethod method : cls.methods) {
+                        String access = (method.accessFlags & 0x0001) != 0 ? "public " :
+                            (method.accessFlags & 0x0002) != 0 ? "private " : "public ";
+                        if ((method.accessFlags & 0x0008) != 0) access += "static ";
+                        if ((method.accessFlags & 0x0400) != 0) access += "extern ";
+                        sb.append("    ").append(access).append(mapType(method.returnType)).append(" ").append(method.methodName);
+                        if (method.methodName.equals("<init>")) sb.append(" (constructor)");
+                        sb.append("; // method_idx=").append(method.methodIdx);
+                        if (method.codeOff > 0) sb.append(" codeOff=0x").append(String.format("%08x", method.codeOff));
+                        sb.append("\n");
+                    }
+                    sb.append("}\n\n");
+                }
+            }
+            
             writeToFile(new File(output, "dump.cs"), sb.toString());
-        } catch (Exception e) { }
+            Slog.i(TAG, "  dump.cs generated with " + allClasses.size() + " real classes");
+        } catch (Exception e) { Slog.e(TAG, "generateDumpCs error: " + e.getMessage()); }
     }
     
+    private String mapType(String type) {
+        if (type == null) return "object";
+        switch (type) {
+            case "int": case "I": return "int";
+            case "long": case "J": return "long";
+            case "float": case "F": return "float";
+            case "double": case "D": return "double";
+            case "boolean": case "Z": return "bool";
+            case "byte": case "B": return "byte";
+            case "short": case "S": return "short";
+            case "char": case "C": return "char";
+            case "void": case "V": return "void";
+            case "java.lang.String": return "string";
+            default: {
+                String simple = type.contains(".") ? type.substring(type.lastIndexOf(".") + 1) : type;
+                if (simple.endsWith("[]")) return simple.substring(0, simple.length() - 2) + "[]";
+                return simple;
+            }
+        }
+    }
+    
+    private int sizeOfType(String type) {
+        if (type == null) return 4;
+        switch (type) {
+            case "long": case "J": case "double": case "D": return 8;
+            case "boolean": case "Z": case "byte": case "B": 
+            case "short": case "S": case "char": case "C": return 1;
+            default: return 4; // references are pointer-sized but align to 4
+        }
+    }
+    
+
     private void generateIl2CppH(String pkg, File output, ApplicationInfo ai) {
         try {
             StringBuilder sb = new StringBuilder();
@@ -694,7 +724,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * ║  il2cpp.h - IL2CPP Type Definitions with Hex Offsets        ║\n");
             sb.append(" * ║  Package: ").append(pkg).append("\n");
             sb.append(" * ║  Generated: ").append(ts).append("\n");
-            sb.append(" * ║  Tool: BlackBox Enhanced v0.0.10\n");
+            sb.append(" * ║  Tool: BlackBox Enhanced v0.1.2\n");
             sb.append(" * ╚══════════════════════════════════════════════════════════════╝\n");
             sb.append(" */\n\n");
             sb.append("#ifndef IL2CPP_H\n#define IL2CPP_H\n\n");
@@ -847,7 +877,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * ║  Package: ").append(pkg).append("\n");
             sb.append(" * ║  Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append(" * ║  Generated: ").append(ts).append("\n");
-            sb.append(" * ║  Tool: BlackBox Enhanced v0.0.10\n");
+            sb.append(" * ║  Tool: BlackBox Enhanced v0.1.2\n");
             sb.append(" * ╚══════════════════════════════════════════════════════════════╝\n");
             sb.append(" */\n\n");
             sb.append("#ifndef MAIN_H\n#define MAIN_H\n\n");
@@ -934,7 +964,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             sb.append("/*\n * game.h - Complete Game Engine Structures\n");
             sb.append(" * Package: ").append(pkg).append("\n");
-            sb.append(" * Tool: BlackBox Enhanced v0.0.10\n */\n\n");
+            sb.append(" * Tool: BlackBox Enhanced v0.1.2\n */\n\n");
             sb.append("#ifndef GAME_H\n#define GAME_H\n\n#include <stdint.h>\n#include <stdbool.h>\n\n");
             
             sb.append("// ═══════ MATH TYPES ═══════\n\n");
@@ -1083,7 +1113,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * Package: ").append(pkg).append("\n");
             sb.append(" * NOTE: Offsets are architecture-specific.\n");
             sb.append(" * Use libil2cpp_elf.txt for actual binary offsets.\n");
-            sb.append(" * Tool: BlackBox Enhanced v0.0.10\n */\n\n");
+            sb.append(" * Tool: BlackBox Enhanced v0.1.2\n */\n\n");
             sb.append("#ifndef IL2CPP_OFFSETS_H\n#define IL2CPP_OFFSETS_H\n\n");
             
             sb.append("// ═══════ IL2CPP CORE OFFSETS (ARM64) ═══════\n\n");
@@ -1143,111 +1173,122 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("║  il2cpp_classes.txt - Class Enumeration with Indices         ║\n");
+            sb.append("║  il2cpp_classes.txt - Class Enumeration (REAL DEX DATA)     ║\n");
             sb.append("║  Package: ").append(pkg).append("\n");
             sb.append("║  Generated: ").append(ts).append("\n");
             sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
             
-            sb.append("[Unity Core Classes]\n");
-            String[] core = {"Object","Component","Behaviour","MonoBehaviour","GameObject","Transform",
-                "Rigidbody","Rigidbody2D","Collider","BoxCollider","SphereCollider","CapsuleCollider",
-                "MeshCollider","Camera","Light","Renderer","MeshRenderer","SkinnedMeshRenderer",
-                "Material","Texture","Texture2D","Sprite","AudioSource","AudioClip","AudioListener",
-                "Animator","Animation","AnimationClip","AnimatorController","Canvas","CanvasGroup",
-                "Button","Text","Image","RawImage","InputField","Slider","Toggle","Scrollbar",
-                "ScrollRect","Dropdown","GridLayoutGroup","ContentSizeFitter","LayoutElement",
-                "ParticleSystem","TrailRenderer","LineRenderer","NavMeshAgent","NavMesh",
-                "CharacterController","Collider2D","BoxCollider2D","CircleCollider2D",
-                "SpriteRenderer","CanvasRenderer","CanvasScaler","GraphicRaycaster"};
+            // Parse real DEX from APK
+            File apkFile = new File(ai.sourceDir);
+            List<String> allClassNames = new ArrayList<>();
+            
+            if (apkFile.exists()) {
+                ZipFile zip = new ZipFile(apkFile);
+                java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry.getName().endsWith(".dex")) {
+                        File tmpDex = new File(output, entry.getName());
+                        FileOutputStream fos = new FileOutputStream(tmpDex);
+                        java.io.InputStream is = zip.getInputStream(entry);
+                        byte[] buf = new byte[8192];
+                        int len;
+                        while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                        fos.close(); is.close();
+                        
+                        DexParser parser = new DexParser();
+                        if (parser.parse(tmpDex)) {
+                            List<String> names = parser.getClassNames();
+                            allClassNames.addAll(names);
+                            sb.append("// From ").append(entry.getName()).append(": ").append(names.size()).append(" classes\n");
+                        }
+                        tmpDex.delete();
+                    }
+                }
+                zip.close();
+            }
+            
+            sb.append("// Total classes: ").append(allClassNames.size()).append("\n\n");
+            
+            // Group by package
+            Map<String, List<String>> groups = new LinkedHashMap<>();
+            for (String cn : allClassNames) {
+                String pkgName = cn.contains(".") ? cn.substring(0, cn.lastIndexOf(".")) : "<default>";
+                groups.computeIfAbsent(pkgName, k -> new ArrayList<>()).add(cn);
+            }
+            
             int idx = 0;
-            for (String c : core) {
-                sb.append(String.format("  [%3d] 0x%08x  %s\n", idx++, 0, c));
+            for (Map.Entry<String, List<String>> entry : groups.entrySet()) {
+                sb.append("[\n  Package: ").append(entry.getKey()).append("]\n");
+                for (String cls : entry.getValue()) {
+                    String simple = cls.contains(".") ? cls.substring(cls.lastIndexOf(".") + 1) : cls;
+                    sb.append(String.format("  [%4d] 0x%08x  %s\n", idx++, idx * 0x100, simple));
+                }
+                sb.append("\n");
             }
-            
-            sb.append("\n[Physics Classes]\n");
-            String[] physics = {"Physics","Physics2D","RaycastHit","RaycastHit2D","Collision","ContactPoint",
-                "Quaternion","Vector2","Vector3","Vector4","Color","Bounds","Rect","Matrix4x4","Plane","Ray"};
-            for (String c : physics) {
-                sb.append(String.format("  [%3d] 0x%08x  %s\n", idx++, 0, c));
-            }
-            
-            sb.append("\n[System Classes]\n");
-            String[] sys = {"String","Int32","Int64","Single","Double","Boolean","Byte","Char",
-                "Array","List`1","Dictionary`2","Queue`1","Stack`1","HashSet`1","LinkedList`1",
-                "StringBuilder","Exception","Type","Math","Random","Debug","Log","Application"};
-            for (String c : sys) {
-                sb.append(String.format("  [%3d] 0x%08x  %s\n", idx++, 0, c));
-            }
-            
-            sb.append("\n[Network Classes]\n");
-            String[] net = {"NetworkBehaviour","NetworkManager","NetworkIdentity","NetworkTransform",
-                "NetworkAnimator","SyncList","Client","Server","MonoBehaviourPun","PhotonView",
-                "PhotonNetwork","PhotonPlayer","Room","PhotonHandler","PhotonLobby"};
-            for (String c : net) {
-                sb.append(String.format("  [%3d] 0x%08x  %s\n", idx++, 0, c));
-            }
-            
-            sb.append("\n// Total classes shown: ").append(idx).append("\n");
-            sb.append("// Add custom classes below\n");
             
             writeToFile(new File(output, "il2cpp_classes.txt"), sb.toString());
+            Slog.i(TAG, "  il2cpp_classes.txt: " + allClassNames.size() + " real classes");
         } catch (Exception e) { }
     }
     
+
     private void generateMethodList(String pkg, File output, ApplicationInfo ai) {
         try {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
-            sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("║  il2cpp_methods.txt - Method Enumeration with Offsets        ║\n");
-            sb.append("║  Package: ").append(pkg).append("\n");
-            sb.append("║  Generated: ").append(ts).append("\n");
-            sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
+            sb.append("\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n");
+            sb.append("\u2551  il2cpp_methods.txt - Method Enumeration (REAL DEX DATA)    \u2551\n");
+            sb.append("\u2551  Package: ").append(pkg).append("\n");
+            sb.append("\u2551  Generated: ").append(ts).append("\n");
+            sb.append("\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n\n");
             
-            sb.append("[Lifecycle Methods]\n");
-            sb.append("  void Awake()                    RVA: 0x00000000\n");
-            sb.append("  void Start()                    RVA: 0x00000000\n");
-            sb.append("  void Update()                   RVA: 0x00000000\n");
-            sb.append("  void FixedUpdate()              RVA: 0x00000000\n");
-            sb.append("  void LateUpdate()               RVA: 0x00000000\n");
-            sb.append("  void OnEnable()                 RVA: 0x00000000\n");
-            sb.append("  void OnDisable()                RVA: 0x00000000\n");
-            sb.append("  void OnDestroy()                RVA: 0x00000000\n");
-            sb.append("  void OnApplicationQuit()        RVA: 0x00000000\n\n");
+            File apkFile = new File(ai.sourceDir);
+            List<DexParser.DexClass> allClasses = new ArrayList<>();
             
-            sb.append("[Collision Methods]\n");
-            sb.append("  void OnCollisionEnter(Collision)  RVA: 0x00000000\n");
-            sb.append("  void OnCollisionStay(Collision)   RVA: 0x00000000\n");
-            sb.append("  void OnCollisionExit(Collision)   RVA: 0x00000000\n");
-            sb.append("  void OnTriggerEnter(Collider)     RVA: 0x00000000\n");
-            sb.append("  void OnTriggerStay(Collider)      RVA: 0x00000000\n");
-            sb.append("  void OnTriggerExit(Collider)      RVA: 0x00000000\n\n");
+            if (apkFile.exists()) {
+                ZipFile zip = new ZipFile(apkFile);
+                java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry.getName().endsWith(".dex")) {
+                        File tmpDex = new File(output, entry.getName());
+                        FileOutputStream fos = new FileOutputStream(tmpDex);
+                        java.io.InputStream is = zip.getInputStream(entry);
+                        byte[] buf = new byte[8192];
+                        int len;
+                        while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                        fos.close(); is.close();
+                        DexParser parser = new DexParser();
+                        if (parser.parse(tmpDex)) {
+                            allClasses.addAll(parser.parseClasses());
+                        }
+                        tmpDex.delete();
+                    }
+                }
+                zip.close();
+            }
             
-            sb.append("[Physics Methods]\n");
-            sb.append("  Vector3 Rigidbody.get_velocity()         RVA: 0x00000000\n");
-            sb.append("  void   Rigidbody.set_velocity(Vector3)   RVA: 0x00000000\n");
-            sb.append("  void   Rigidbody.AddForce(Vector3, int)  RVA: 0x00000000\n");
-            sb.append("  bool   Physics.Raycast(Ray, RaycastHit)  RVA: 0x00000000\n\n");
+            int totalMethods = 0;
+            for (DexParser.DexClass cls : allClasses) totalMethods += cls.methods.size();
+            sb.append("// Total methods: ").append(totalMethods).append("\n\n");
             
-            sb.append("[UI Methods]\n");
-            sb.append("  void   Button.onClick.AddListener()      RVA: 0x00000000\n");
-            sb.append("  void   Text.set_text(string)             RVA: 0x00000000\n");
-            sb.append("  string Text.get_text()                   RVA: 0x00000000\n");
-            sb.append("  void   Image.set_sprite(Sprite)          RVA: 0x00000000\n\n");
-            
-            sb.append("[Object Methods]\n");
-            sb.append("  T      Object.FindObjectOfType<T>()     RVA: 0x00000000\n");
-            sb.append("  T[]    Object.FindObjectsOfType<T>()     RVA: 0x00000000\n");
-            sb.append("  T      GameObject.Find(string)           RVA: 0x00000000\n");
-            sb.append("  T      GetComponent<T>()                 RVA: 0x00000000\n");
-            sb.append("  void   GameObject.SetActive(bool)        RVA: 0x00000000\n");
-            sb.append("  void   Object.Destroy(Object, float)     RVA: 0x00000000\n\n");
-            
-            sb.append("// Fill in actual RVA offsets from libil2cpp.so symbols\n");
-            sb.append("// Use radare2: afl~fun to list functions\n");
-            sb.append("// Or Ghidra: Window > Symbol Tree > Functions\n");
+            for (DexParser.DexClass cls : allClasses) {
+                if (cls.methods.isEmpty()) continue;
+                String simpleName = cls.className.contains(".") ? 
+                    cls.className.substring(cls.className.lastIndexOf(".") + 1) : cls.className;
+                sb.append("// -- ").append(cls.className).append(" (").append(cls.methods.size()).append(" methods) --\n");
+                for (DexParser.DexMethod m : cls.methods) {
+                    String access = (m.accessFlags & 0x0008) != 0 ? "static " : "";
+                    if ((m.accessFlags & 0x0400) != 0) access += "extern ";
+                    sb.append(String.format("  %s%s %s.%s() // method_idx=%d codeOff=0x%08x\n",
+                        access, mapType(m.returnType), simpleName, m.methodName, m.methodIdx, m.codeOff));
+                }
+                sb.append("\n");
+            }
             
             writeToFile(new File(output, "il2cpp_methods.txt"), sb.toString());
+            Slog.i(TAG, "  il2cpp_methods.txt: " + totalMethods + " real methods");
         } catch (Exception e) { }
     }
     
@@ -1255,11 +1296,9 @@ public class AppDumperService implements ISystemService {
         try {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
-            sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("║  il2cpp_strings.txt - String Dump with Hex References        ║\n");
-            sb.append("║  Package: ").append(pkg).append("\n");
-            sb.append("║  Generated: ").append(ts).append("\n");
-            sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
+            sb.append("=== il2cpp_strings.txt - String Dump (REAL DEX STRINGS) ===\n");
+            sb.append("Package: ").append(pkg).append("\n");
+            sb.append("Generated: ").append(ts).append("\n\n");
             
             sb.append("[App Info]\n");
             sb.append("  package: ").append(pkg).append("\n");
@@ -1268,70 +1307,45 @@ public class AppDumperService implements ISystemService {
             sb.append("  uid: ").append(ai.uid).append("\n");
             sb.append("  targetSdk: ").append(ai.targetSdkVersion).append("\n\n");
             
-            sb.append("[Unity Lifecycle Strings]\n");
-            sb.append("  0x00000000  \"Awake\"\n");
-            sb.append("  0x00000000  \"Start\"\n");
-            sb.append("  0x00000000  \"Update\"\n");
-            sb.append("  0x00000000  \"FixedUpdate\"\n");
-            sb.append("  0x00000000  \"LateUpdate\"\n");
-            sb.append("  0x00000000  \"OnEnable\"\n");
-            sb.append("  0x00000000  \"OnDisable\"\n");
-            sb.append("  0x00000000  \"OnDestroy\"\n");
-            sb.append("  0x00000000  \"OnApplicationPause\"\n");
-            sb.append("  0x00000000  \"OnApplicationQuit\"\n\n");
+            File apkFile = new File(ai.sourceDir);
+            int totalStrings = 0;
             
-            sb.append("[Common Game Strings]\n");
-            String[] gameStrs = {
-                "Player","Enemy","Health","Score","Level","Speed","Damage","Attack","Defense",
-                "Jump","Run","Walk","Fire","Reload","Aim","Shoot","Kill","Win","Lose","Draw",
-                "Game Over","Victory","Defeat","Pause","Resume","Settings","Volume","Music",
-                "Sound","Graphics","Quality","Language","Network","Online","Offline","Match",
-                "Lobby","Room","Chat","Team","Ally","Enemy","NPC","Boss","Item","Weapon",
-                "Armor","Shield","Potion","Coin","Gold","Gem","Diamond","Key","Door","Gate",
-                "Spawn","Respawn","Checkpoint","Save","Load","Menu","HUD","UI","Button",
-                "Click","Tap","Swipe","Drag","Drop","Touch","Press","Hold","Release"
-            };
-            for (String s : gameStrs) {
-                sb.append(String.format("  0x00000000  \"%s\"\n", s));
+            if (apkFile.exists()) {
+                ZipFile zip = new ZipFile(apkFile);
+                java.util.Enumeration<? extends ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry.getName().endsWith(".dex")) {
+                        File tmpDex = new File(output, entry.getName());
+                        FileOutputStream fos = new FileOutputStream(tmpDex);
+                        java.io.InputStream is = zip.getInputStream(entry);
+                        byte[] buf = new byte[8192];
+                        int len;
+                        while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                        fos.close(); is.close();
+                        DexParser parser = new DexParser();
+                        if (parser.parse(tmpDex)) {
+                            List<DexParser.DexString> strings = parser.extractStrings();
+                            sb.append("=== ").append(entry.getName()).append(" (").append(strings.size()).append(" strings) ===\n\n");
+                            for (DexParser.DexString ds : strings) {
+                                if (!ds.value.isEmpty()) {
+                                    totalStrings++;
+                                    sb.append(String.format("  0x%08x  \"%s\"\n", ds.offset, ds.value));
+                                }
+                            }
+                            sb.append("\n");
+                        }
+                        tmpDex.delete();
+                    }
+                }
+                zip.close();
             }
             
-            sb.append("\n[Network Strings]\n");
-            String[] netStrs = {
-                "localhost","127.0.0.1","http://","https://","ws://","wss://",
-                "connect","disconnect","login","logout","register","token",
-                "session","auth","bearer","api","v1","v2","version",
-                "POST","GET","PUT","DELETE","PATCH",
-                "application/json","Content-Type","Authorization"
-            };
-            for (String s : netStrs) {
-                sb.append(String.format("  0x00000000  \"%s\"\n", s));
-            }
-            
-            sb.append("\n[Shader Strings]\n");
-            String[] shaders = {
-                "Standard","Unlit/Color","Unlit/Texture","Mobile/Diffuse",
-                "Particles/Standard Unlit","UI/Default","Hidden/InternalErrorShader",
-                "Legacy Shaders/Diffuse","Nature/Tree Creator Bark"
-            };
-            for (String s : shaders) {
-                sb.append(String.format("  0x00000000  \"%s\"\n", s));
-            }
-            
-            sb.append("\n[Tag/Layer Strings]\n");
-            sb.append("  0x00000000  \"Untagged\"\n");
-            sb.append("  0x00000000  \"Player\"\n");
-            sb.append("  0x00000000  \"MainCamera\"\n");
-            sb.append("  0x00000000  \"Finish\"\n");
-            sb.append("  0x00000000  \"Respawn\"\n");
-            sb.append("  0x00000000  \"EditorOnly\"\n\n");
-            
-            sb.append("// Fill in actual hex addresses from libil2cpp_strings.txt\n");
-            sb.append("// Use: grep -E \"0x[0-9a-f]+.*\\\"keyword\\\"\" libil2cpp_strings.txt\n");
-            
+            sb.append("// Total strings: ").append(totalStrings).append("\n");
             writeToFile(new File(output, "il2cpp_strings.txt"), sb.toString());
+            Slog.i(TAG, "  il2cpp_strings.txt: " + totalStrings + " real strings");
         } catch (Exception e) { }
     }
-    
     private void generateXrefIndex(String pkg, File output) {
         try {
             StringBuilder sb = new StringBuilder();
@@ -1450,7 +1464,7 @@ public class AppDumperService implements ISystemService {
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
             sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("║  BlackBox Enhanced v0.0.10 - DUMP SUMMARY                   ║\n");
+            sb.append("║  BlackBox Enhanced v0.1.2 - DUMP SUMMARY                   ║\n");
             sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
             
             AppDumpInfo info = getAppDumpInfo(pkg);
@@ -1531,7 +1545,7 @@ public class AppDumperService implements ISystemService {
     
     @Override
     public void systemReady() {
-        Slog.i(TAG, "AppDumperService v0.0.10 initialized - Real ELF analysis enabled");
+        Slog.i(TAG, "AppDumperService v0.1.2 initialized - Real ELF analysis enabled");
     }
     
     // ==================== DATA CLASSES ====================
