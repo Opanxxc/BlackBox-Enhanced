@@ -101,12 +101,6 @@ public class MemoryDumper {
                 result.add(r);
             }
         }
-        // Also find DEX magic in anonymous regions
-        for (MemoryRegion r : parseMaps()) {
-            if (r.path.isEmpty() && r.isReadable() && r.size > 100) {
-                if (r.magic != null && r.magic.startsWith("dex\n")) {
-                    result.add(r);
-                }
             }
         }
         return result;
