@@ -593,7 +593,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
-            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.8\n");
+            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.2.0\n");
             sb.append("// Package: ").append(pkg).append("\n");
             sb.append("// Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append("// Generated: ").append(ts).append("\n\n");
@@ -633,6 +633,16 @@ public class AppDumperService implements ISystemService {
                     if (d.exists()) {
                         File found = findFileRecursive(d, "global-metadata.dat", 10);
                         if (found != null) { metadataFile = found; break; }
+                        // Also check inside APK/OBB files
+                        File[] apks = d.listFiles();
+                        if (apks != null) {
+                            for (File apk : apks) {
+                                if (apk.getName().endsWith(".apk") || apk.getName().endsWith(".obb")) {
+                                    File inZip = findMetadataInZip(apk);
+                                    if (inZip != null) { metadataFile = inZip; break; }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -737,7 +747,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * ║  il2cpp.h - IL2CPP Type Definitions with Hex Offsets        ║\n");
             sb.append(" * ║  Package: ").append(pkg).append("\n");
             sb.append(" * ║  Generated: ").append(ts).append("\n");
-            sb.append(" * ║  Tool: BlackBox Enhanced v0.1.2\n");
+            sb.append(" * ║  Tool: BlackBox Enhanced v0.2.0\n");
             sb.append(" * ╚══════════════════════════════════════════════════════════════╝\n");
             sb.append(" */\n\n");
             sb.append("#ifndef IL2CPP_H\n#define IL2CPP_H\n\n");
@@ -890,7 +900,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * ║  Package: ").append(pkg).append("\n");
             sb.append(" * ║  Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append(" * ║  Generated: ").append(ts).append("\n");
-            sb.append(" * ║  Tool: BlackBox Enhanced v0.1.2\n");
+            sb.append(" * ║  Tool: BlackBox Enhanced v0.2.0\n");
             sb.append(" * ╚══════════════════════════════════════════════════════════════╝\n");
             sb.append(" */\n\n");
             sb.append("#ifndef MAIN_H\n#define MAIN_H\n\n");
@@ -977,7 +987,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             sb.append("/*\n * game.h - Complete Game Engine Structures\n");
             sb.append(" * Package: ").append(pkg).append("\n");
-            sb.append(" * Tool: BlackBox Enhanced v0.1.2\n */\n\n");
+            sb.append(" * Tool: BlackBox Enhanced v0.2.0\n */\n\n");
             sb.append("#ifndef GAME_H\n#define GAME_H\n\n#include <stdint.h>\n#include <stdbool.h>\n\n");
             
             sb.append("// ═══════ MATH TYPES ═══════\n\n");
@@ -1126,7 +1136,7 @@ public class AppDumperService implements ISystemService {
             sb.append(" * Package: ").append(pkg).append("\n");
             sb.append(" * NOTE: Offsets are architecture-specific.\n");
             sb.append(" * Use libil2cpp_elf.txt for actual binary offsets.\n");
-            sb.append(" * Tool: BlackBox Enhanced v0.1.2\n */\n\n");
+            sb.append(" * Tool: BlackBox Enhanced v0.2.0\n */\n\n");
             sb.append("#ifndef IL2CPP_OFFSETS_H\n#define IL2CPP_OFFSETS_H\n\n");
             
             sb.append("// ═══════ IL2CPP CORE OFFSETS (ARM64) ═══════\n\n");
@@ -1359,6 +1369,35 @@ public class AppDumperService implements ISystemService {
             Slog.i(TAG, "  il2cpp_strings.txt: " + totalStrings + " real strings");
         } catch (Exception e) { }
     }
+    /**
+     * Check if a metadata file might be inside an APK/OBB zip
+     */
+    private File findMetadataInZip(File zipFile) {
+        try {
+            java.util.zip.ZipFile zip = new java.util.zip.ZipFile(zipFile);
+            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                java.util.zip.ZipEntry entry = entries.nextElement();
+                if (entry.getName().endsWith("global-metadata.dat")) {
+                    // Extract to temp
+                    File tmp = new File(zipFile.getParent(), "extracted_metadata.dat");
+                    java.io.InputStream is = zip.getInputStream(entry);
+                    FileOutputStream fos = new FileOutputStream(tmp);
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                    fos.close();
+                    is.close();
+                    zip.close();
+                    Slog.i(TAG, "  Extracted metadata from zip: " + zipFile.getName());
+                    return tmp;
+                }
+            }
+            zip.close();
+        } catch (Exception e) { }
+        return null;
+    }
+    
     private File findFileRecursive(File dir, String fileName, int maxDepth) {
         if (maxDepth <= 0 || !dir.exists()) return null;
         try {
@@ -1495,7 +1534,7 @@ public class AppDumperService implements ISystemService {
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
             sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-            sb.append("║  BlackBox Enhanced v0.1.2 - DUMP SUMMARY                   ║\n");
+            sb.append("║  BlackBox Enhanced v0.2.0 - DUMP SUMMARY                   ║\n");
             sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
             
             AppDumpInfo info = getAppDumpInfo(pkg);
@@ -1576,7 +1615,7 @@ public class AppDumperService implements ISystemService {
     
     @Override
     public void systemReady() {
-        Slog.i(TAG, "AppDumperService v0.1.2 initialized - Real ELF analysis enabled");
+        Slog.i(TAG, "AppDumperService v0.2.0 initialized - Real ELF analysis enabled");
     }
     
     // ==================== DATA CLASSES ====================

@@ -36,6 +36,11 @@
                 app:key="lsposed_support"
                 app:title="LSPosed / Xposed Support"
                 app:summary="Enable LSPosed/Xposed framework for hook injection"/>
+
+        <Preference
+                app:key="root_status"
+                app:title="Root Manager Status"
+                app:summary="Inactive"/>
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Security &amp; Privacy">
@@ -67,7 +72,12 @@
         <SwitchPreferenceCompat
                 app:key="online_bypass"
                 app:title="Online Bypass"
-                app:summary="Block anti-cheat/analytics network requests"/>
+                app:summary="Block anti-cheat/analytics/tracking network requests"/>
+
+        <Preference
+                app:key="bypass_status"
+                app:title="Bypass Status"
+                app:summary="Inactive"/>
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Advanced Features">
@@ -106,7 +116,7 @@
         <SwitchPreferenceCompat
                 app:key="auto_dump_enabled"
                 app:title="Auto Dump on Launch"
-                app:summary="Auto-dump IL2CPP when launching apps (OFF by default to prevent FC)"/>
+                app:summary="Auto-dump when launching apps (OFF by default to prevent FC)"/>
 
         <Preference
                 app:key="dumper_il2cpp"
@@ -122,6 +132,11 @@
                 app:key="dumper_native"
                 app:title="Dump Native SO"
                 app:summary="Extract all .so libraries"/>
+
+        <Preference
+                app:key="dump_status"
+                app:title="Dump Status"
+                app:summary="No app launched yet"/>
     </PreferenceCategory>
 
     <PreferenceCategory app:title="System">

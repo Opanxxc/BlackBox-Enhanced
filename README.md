@@ -23,7 +23,7 @@ BlackBox Enhanced creates a virtual Android environment where you can run apps i
 - Multi-account support (run same app multiple times)
 - Shell script (.sh) execution support
 
-### IL2CPP Dumper (v0.1.3)
+### IL2CPP Dumper (v0.2.0)
 - **Real metadata parsing** from `global-metadata.dat` (IL2CPP v24-v29)
 - Extracts actual class names, namespaces, field names, method names
 - Generates `dump.cs` with real IL2CPP class/method structure
@@ -49,6 +49,12 @@ BlackBox Enhanced creates a virtual Android environment where you can run apps i
 - Persistent signing key (install-over without data loss)
 - Debug logging throughout
 - Android 5.0 - 17 support
+- Real root manager with per-app control
+- Zygisk module support
+- LSPosed/Xposed framework support
+- Online bypass (200+ hosts across 7 categories)
+- Comprehensive dump with logging
+- Status displays in Settings
 
 ## Dump Output
 
@@ -102,7 +108,7 @@ To build locally:
 - **Original BlackBox**: [ALEX5402](https://github.com/ALEX5402/NewBlackbox)
 - **Enhanced by**: [Panxcz](https://github.com/Opanxxc) & Freebuff
 - **IL2CPP format reference**: [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
-- **Version**: 0.1.3
+- **Version**: 0.2.0
 
 ## License
 

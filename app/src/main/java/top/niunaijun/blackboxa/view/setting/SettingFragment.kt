@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.util.Log
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
@@ -21,13 +22,13 @@ import top.niunaijun.blackbox.core.system.rootmanager.RootManagerService
 import top.niunaijun.blackbox.core.system.shell.ShellScriptService
 import top.niunaijun.blackbox.core.system.location.EnhancedLocationService
 import top.niunaijun.blackbox.core.system.dumper.AppDumperService
-import android.util.Log
 import java.io.File
 
 class SettingFragment : PreferenceFragmentCompat() {
 
     companion object {
         private const val TAG = "SettingFragment"
+        private const val PREFS_NAME = "blackbox_settings"
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -40,6 +41,7 @@ class SettingFragment : PreferenceFragmentCompat() {
         initAdvancedSettings()
         initDumperSettings()
         initSystemSettings()
+        initStatusDisplay()
     }
 
     // ==================== GMS ====================
@@ -75,7 +77,7 @@ class SettingFragment : PreferenceFragmentCompat() {
                 "com.internet114.mtmanager.MainActivity",
                 "mt.manager.Activity"
             )
-            
+
             for (pkg in packageNames) {
                 for (act in activityNames) {
                     try {
@@ -89,9 +91,8 @@ class SettingFragment : PreferenceFragmentCompat() {
                 }
                 if (launched) break
             }
-            
+
             if (!launched) {
-                // Try launch by package only
                 try {
                     val intent = requireContext().packageManager.getLaunchIntentForPackage("com.moddingx.music")
                     if (intent != null) {
@@ -100,9 +101,9 @@ class SettingFragment : PreferenceFragmentCompat() {
                     }
                 } catch (e: Exception) { }
             }
-            
+
             if (!launched) {
-                toast("MT Manager not installed. Download from GitHub releases.")
+                toast("MT Manager not installed. Download from GitHub.")
                 try {
                     val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AlexCui5402/MT-Manager/releases"))
                     startActivity(browserIntent)
@@ -124,20 +125,21 @@ class SettingFragment : PreferenceFragmentCompat() {
             AppManager.mBlackBoxLoader.invalidHideRoot(enabled)
         }
 
-        // Root Manager - actually manages root access
+        // Root Manager - real root access management
         initSwitch("root_manager", "Root Manager", "Manage root access per-app (Magisk/KernelSU style)") { enabled ->
             Log.i(TAG, "Root Manager: ${if (enabled) "ON" else "OFF"}")
             RootManagerService.get().setEnabled(enabled)
             if (enabled) {
                 HideRootService.get().setHideRootEnabled(true)
                 RootManagerService.get().createFakeSu()
-                toast("Root Manager enabled - manage per-app root in app settings")
+                RootManagerService.get().setMagiskHide(true)
+                toast("Root Manager enabled with Magisk Hide")
             } else {
                 toast("Root Manager disabled")
             }
         }
 
-        // Zygisk Support - actually enables module injection
+        // Zygisk Support
         initSwitch("zygisk_support", "Zygisk Support", "Enable Zygisk injection for modules") { enabled ->
             Log.i(TAG, "Zygisk Support: ${if (enabled) "ON" else "OFF"}")
             RootManagerService.get().setZygiskEnabled(enabled)
@@ -146,7 +148,7 @@ class SettingFragment : PreferenceFragmentCompat() {
             }
         }
 
-        // LSPosed / Xposed Support - actually enables framework
+        // LSPosed / Xposed Support
         initSwitch("lsposed_support", "LSPosed / Xposed Support", "Enable LSPosed/Xposed framework") { enabled ->
             Log.i(TAG, "LSPosed Support: ${if (enabled) "ON" else "OFF"}")
             RootManagerService.get().setLSPosedEnabled(enabled)
@@ -208,11 +210,15 @@ class SettingFragment : PreferenceFragmentCompat() {
         }
 
         // Online Bypass
-        initSwitch("online_bypass", "Online Bypass", "Block anti-cheat/analytics network requests") { enabled ->
+        initSwitch("online_bypass", "Online Bypass", "Block anti-cheat/analytics/tracking network requests") { enabled ->
             Log.i(TAG, "Online Bypass: ${if (enabled) "ON" else "OFF"}")
             if (enabled) {
                 BypassOnlineService.get().activate()
-                toast("Online bypass enabled - blocking ${BypassOnlineService.get().getBlockedCount()} hosts")
+                val count = BypassOnlineService.get().blockedCount
+                toast("Online bypass enabled - blocking $count hosts")
+            } else {
+                BypassOnlineService.get().deactivate()
+                toast("Online bypass disabled")
             }
         }
 
@@ -247,56 +253,64 @@ class SettingFragment : PreferenceFragmentCompat() {
         }
 
         // Shell Script
-        initSwitch("shell_script", "Shell Script Execution", "Enable .sh script execution") { _ ->
-            Log.d(TAG, "Shell script toggle")
+        initSwitch("shell_script", "Shell Script Execution", "Enable .sh script execution") { enabled ->
+            Log.i(TAG, "Shell Script: ${if (enabled) "ON" else "OFF"}")
+            if (enabled) {
+                ShellScriptService.get().setEnabled(true)
+                toast("Shell script execution enabled")
+            }
         }
 
         // Fake Location
-        initSwitch("fake_location", "Enhanced Fake Location", "GPS simulation with movement") { _ ->
-            Log.d(TAG, "Fake location toggle")
+        initSwitch("fake_location", "Enhanced Fake Location", "GPS simulation with movement") { enabled ->
+            Log.i(TAG, "Fake Location: ${if (enabled) "ON" else "OFF"}")
+            EnhancedLocationService.get().setEnabled(enabled)
         }
     }
 
     // ==================== DUMPER SETTINGS ====================
 
     private fun initDumperSettings() {
+        Log.d(TAG, "Initializing dumper settings...")
+
         // Enable Dumper
         initSwitch("dumper_enable", "Enable App Dumper", "Enable IL2CPP/DEX/Unity dumping") { enabled ->
+            Log.i(TAG, "App Dumper: ${if (enabled) "ON" else "OFF"}")
             AppDumperService.get().setDumpEnabled(enabled)
+            if (enabled) {
+                toast("App Dumper enabled")
+            }
         }
 
         // Auto Dump (OFF by default)
-        initSwitch("auto_dump_enabled", "Auto Dump on Launch", "Auto-dump IL2CPP when launching apps (OFF by default to prevent FC)") { enabled ->
+        initSwitch("auto_dump_enabled", "Auto Dump on Launch", "Auto-dump IL2CPP when launching apps (OFF by default)") { enabled ->
             Log.i(TAG, "Auto Dump: ${if (enabled) "ON" else "OFF"}")
+            savePref("auto_dump_enabled", enabled)
             if (enabled) {
-                toast("Auto dump enabled - IL2CPP will be dumped when launching apps")
+                toast("Auto dump enabled - dump will run 3s after app launch")
+            } else {
+                toast("Auto dump disabled")
             }
         }
 
         // Dump IL2CPP - triggers manual dump
         findPreference<Preference>("dumper_il2cpp")?.setOnPreferenceClickListener {
             AppDumperService.get().setDumpEnabled(true)
-            toast("IL2CPP dump enabled - will dump on next app launch")
-            // Also try to dump the last launched app
-            try {
-                val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
-                val lastPkg = prefs.getString("last_launched_pkg", "") ?: ""
-                if (lastPkg.isNotEmpty()) {
-                    Thread {
-                        try {
-                            val outputDir = AppDumperService.getDefaultDumpDir(lastPkg)
-                            AppDumperService.get().dumpIL2CPP(lastPkg, outputDir + "/il2cpp")
-                            android.util.Log.i(TAG, "Manual IL2CPP dump completed: $outputDir")
-                        } catch (e: Exception) {
-                            android.util.Log.e(TAG, "Manual IL2CPP dump failed: ${e.message}")
-                        }
-                    }.start()
-                    toast("Dumping IL2CPP for $lastPkg...")
-                } else {
-                    toast("No app launched yet. Launch an app first, then dump.")
-                }
-            } catch (e: Exception) {
-                toast("Dump triggered - will run on next launch")
+            val lastPkg = getPrefString("last_launched_pkg")
+            if (lastPkg.isNotEmpty()) {
+                toast("Dumping IL2CPP for $lastPkg...")
+                Thread {
+                    try {
+                        val outputDir = AppDumperService.getDefaultDumpDir(lastPkg) + "/il2cpp"
+                        File(outputDir).mkdirs()
+                        val result = AppDumperService.get().dumpIL2CPP(lastPkg, outputDir)
+                        Log.i(TAG, "Manual IL2CPP dump: success=$result, dir=$outputDir")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Manual IL2CPP dump failed: ${e.message}")
+                    }
+                }.start()
+            } else {
+                toast("Launch an app first, then come back to dump.")
             }
             true
         }
@@ -304,16 +318,46 @@ class SettingFragment : PreferenceFragmentCompat() {
         // Dump DEX
         findPreference<Preference>("dumper_dex")?.setOnPreferenceClickListener {
             AppDumperService.get().setDumpEnabled(true)
-            toast("DEX dump enabled - will dump on next app launch")
+            val lastPkg = getPrefString("last_launched_pkg")
+            if (lastPkg.isNotEmpty()) {
+                toast("Dumping DEX for $lastPkg...")
+                Thread {
+                    try {
+                        val outputDir = AppDumperService.getDefaultDumpDir(lastPkg) + "/dex"
+                        File(outputDir).mkdirs()
+                        AppDumperService.get().dumpDEX(lastPkg, outputDir)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Manual DEX dump failed: ${e.message}")
+                    }
+                }.start()
+            } else {
+                toast("Launch an app first, then come back to dump.")
+            }
             true
         }
 
         // Dump Native SO
         findPreference<Preference>("dumper_native")?.setOnPreferenceClickListener {
             AppDumperService.get().setDumpEnabled(true)
-            toast("Native SO dump enabled - will dump on next app launch")
+            val lastPkg = getPrefString("last_launched_pkg")
+            if (lastPkg.isNotEmpty()) {
+                toast("Dumping native libraries for $lastPkg...")
+                Thread {
+                    try {
+                        val outputDir = AppDumperService.getDefaultDumpDir(lastPkg) + "/native"
+                        File(outputDir).mkdirs()
+                        AppDumperService.get().dumpNativeLibs(lastPkg, outputDir)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Manual native dump failed: ${e.message}")
+                    }
+                }.start()
+            } else {
+                toast("Launch an app first, then come back to dump.")
+            }
             true
         }
+
+        Log.d(TAG, "Dumper settings initialized")
     }
 
     // ==================== SYSTEM SETTINGS ====================
@@ -329,7 +373,7 @@ class SettingFragment : PreferenceFragmentCompat() {
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 startActivity(intent)
             } catch (e: Exception) {
-                toast("Logs dir: /storage/emulated/0/Download/black/logs/")
+                toast("Logs: /storage/emulated/0/Download/black/logs/")
             }
             true
         }
@@ -352,8 +396,76 @@ class SettingFragment : PreferenceFragmentCompat() {
                                 }
                             }
                     )
-            toast("Sending logs... (Check notifications for status)")
+            toast("Sending logs...")
             true
+        }
+    }
+
+    // ==================== STATUS DISPLAY ====================
+
+    private fun initStatusDisplay() {
+        // Show last launched app info
+        val lastPkg = getPrefString("last_launched_pkg")
+        findPreference<Preference>("dump_status")?.apply {
+            if (lastPkg.isNotEmpty()) {
+                summary = "Last app: $lastPkg\nTap to open dump folder"
+            } else {
+                summary = "No app launched yet"
+            }
+            setOnPreferenceClickListener {
+                if (lastPkg.isNotEmpty()) {
+                    try {
+                        val dumpDir = File(AppDumperService.getDefaultDumpDir(lastPkg))
+                        if (dumpDir.exists()) {
+                            val intent = Intent(Intent.ACTION_VIEW)
+                            intent.setDataAndType(Uri.fromFile(dumpDir), "resource/folder")
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            startActivity(intent)
+                        } else {
+                            toast("No dump yet for $lastPkg")
+                        }
+                    } catch (e: Exception) {
+                        toast("Dump dir: " + AppDumperService.getDefaultDumpDir(lastPkg))
+                    }
+                } else {
+                    toast("Launch an app first")
+                }
+                true
+            }
+        }
+
+        // Bypass status
+        findPreference<Preference>("bypass_status")?.apply {
+            if (BypassOnlineService.get().isActive) {
+                val count = BypassOnlineService.get().blockedCount
+                summary = "Active - blocking $count hosts"
+            } else {
+                summary = "Inactive - enable Online Bypass to activate"
+            }
+            setOnPreferenceClickListener {
+                if (BypassOnlineService.get().isActive) {
+                    val report = BypassOnlineService.get().generateReport()
+                    toast("Online bypass: blocking ${BypassOnlineService.get().blockedCount} hosts")
+                } else {
+                    toast("Enable Online Bypass in Security settings first")
+                }
+                true
+            }
+        }
+
+        // Root Manager status
+        findPreference<Preference>("root_status")?.apply {
+            if (RootManagerService.get().isEnabled) {
+                val permCount = RootManagerService.get().allPermissions.size
+                summary = "Active - ${permCount} app(s) managed"
+            } else {
+                summary = "Inactive - enable Root Manager to activate"
+            }
+            setOnPreferenceClickListener {
+                val report = RootManagerService.get().generateStatusReport()
+                toast("Root Manager: ${if (RootManagerService.get().isEnabled) "active" else "inactive"}")
+                true
+            }
         }
     }
 
@@ -391,9 +503,22 @@ class SettingFragment : PreferenceFragmentCompat() {
                     AppManager.mBlackBoxLoader.invalidDisableFlagSecure(tmpHide)
                 }
             }
-
             toast(R.string.restart_module)
             return@setOnPreferenceChangeListener true
         }
+    }
+
+    private fun savePref(key: String, value: Boolean) {
+        try {
+            val prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
+            prefs.edit().putBoolean(key, value).apply()
+        } catch (e: Exception) { }
+    }
+
+    private fun getPrefString(key: String): String {
+        return try {
+            val prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
+            prefs.getString(key, "") ?: ""
+        } catch (e: Exception) { "" }
     }
 }
