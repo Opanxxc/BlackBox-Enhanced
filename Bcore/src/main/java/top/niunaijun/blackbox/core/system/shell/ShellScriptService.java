@@ -315,7 +315,16 @@ public class ShellScriptService implements ISystemService {
             }
             
             // Wait for process to complete
-            int exitCode = mProcess.waitFor();
+            int exitCode = 0;
+            try {
+                exitCode = mProcess.waitFor();
+            } catch (InterruptedException e) {
+                mStatus = Status.ERROR;
+                if (mCallback != null) {
+                    mCallback.onError(mSessionId, "Process interrupted");
+                }
+                return;
+            }
             
             if (exitCode == 0) {
                 mStatus = Status.COMPLETED;
