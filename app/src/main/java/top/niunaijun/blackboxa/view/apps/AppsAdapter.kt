@@ -68,7 +68,7 @@ class AppsAdapter : RVHolderFactory() {
                 setIconSafely(item.icon, item.packageName)
                 
                 
-                binding.name.text = item.name ?: "Unknown App"
+                binding.name.text = item.name.ifEmpty { "Unknown App" }
                 
                 
                 if (item.isXpModule) {
@@ -156,7 +156,7 @@ class AppsAdapter : RVHolderFactory() {
             try {
                 
                 binding.icon.setImageDrawable(ColorDrawable(DEFAULT_ICON_COLOR))
-                binding.name.text = item.name ?: "Unknown App"
+                binding.name.text = item.name.ifEmpty { "Unknown App" }
                 binding.cornerLabel.visibility = View.INVISIBLE
             } catch (e: Exception) {
                 Log.e(TAG, "Error in fallback ViewHolder: ${e.message}")

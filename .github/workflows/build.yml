@@ -152,15 +152,42 @@ jobs:
         retention-days: 90
         if-no-files-found: warn
         
-    - name: Create Release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
+    - name: Create Release (Auto)
       uses: softprops/action-gh-release@v2
       with:
+        name: "BlackBox Enhanced v5.0.0"
+        tag_name: "v5.0.0"
+        body: |
+          ## BlackBox Enhanced v5.0.0
+          
+          ### 📱 What's New
+          - Shell script execution (.sh support)
+          - Google login integration
+          - Advanced root hiding (Kernel-level)
+          - VPN hiding
+          - Enhanced fake location with GPS simulation
+          - SafetyNet/Play Integrity bypass
+          - Frida/Xposed/Substrate detection bypass
+          - Hook detection bypass
+          - Android 5.0 - 17 support
+          
+          ### 🔐 Security Features
+          - Root hiding: Magisk, KSU, APatch, Kernel-level
+          - Hook bypass: Frida, Xposed, Substrate
+          - Memory mapping hiding
+          - /proc manipulation
+          - SELinux enforcing spoof
+          
+          ### 📲 Installation
+          1. Download the APK below
+          2. Enable "Unknown Sources" in settings
+          3. Install and enjoy!
         files: |
-          BlackBox-Enhanced-v*-release-*.apk
-          BlackBox-Enhanced-v*-debug-*.apk
+          app/build/outputs/apk/debug/app-debug.apk
+          app/build/outputs/apk/release/app-release-unsigned.apk
         draft: false
         prerelease: false
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
