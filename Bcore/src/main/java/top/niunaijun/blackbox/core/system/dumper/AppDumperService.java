@@ -66,16 +66,15 @@ public class AppDumperService implements ISystemService {
     public boolean dumpIL2CPP(String pkg, String outputDir) {
         if (!mDumpEnabled) return false;
         Slog.i(TAG, "=== IL2CPP DUMP: " + pkg + " ===");
-        // Create log directory
-        File logDir = new File("/storage/emulated/0/Download/black/logs");
-        logDir.mkdirs();
-        String logFile = "/storage/emulated/0/Download/black/logs/dump_" + pkg + "_" + 
-            new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".log";
         try {
             PackageInfo pi = BlackBoxCore.getPackageManager().getPackageInfo(pkg, 0);
             ApplicationInfo ai = pi.applicationInfo;
             File out = new File(outputDir);
             out.mkdirs();
+            
+            // Log file
+            File logDir = new File("/storage/emulated/0/Download/black/logs");
+            logDir.mkdirs();
             
             // 1. Copy & analyze libil2cpp.so
             File libDir = new File(ai.nativeLibraryDir);
@@ -92,7 +91,14 @@ public class AppDumperService implements ISystemService {
             
             // 2. Copy global-metadata.dat
             File dataDir = new File(ai.dataDir);
-            String[] metaPaths = {"files/assets/bin/Data/Managed/Metadata/global-metadata.dat"};
+            String[] metaPaths = {
+                "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
+                "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
+                "files/bin/Data/Managed/Metadata/global-metadata.dat",
+                "files/Managed/Metadata/global-metadata.dat",
+                "files/Managed/global-metadata.dat",
+                "global-metadata.dat"
+            };
             for (String p : metaPaths) {
                 File m = new File(dataDir, p);
                 if (m.exists()) {
@@ -104,68 +110,49 @@ public class AppDumperService implements ISystemService {
                 }
             }
             
-            // 3. Generate comprehensive dump.cs
+            // 3. Generate all dump files
             generateDumpCs(pkg, out, ai, pi);
-            
-            // 4. Generate il2cpp.h with offsets
             generateIl2CppH(pkg, out, ai);
-            
-            // 5. Generate main.h with app info + memory layout
             generateMainH(pkg, out, pi, ai);
-            
-            // 6. Generate game.h with all engine structs
             generateGameH(pkg, out);
-            
-            // 7. Generate il2cpp_offsets.h
             generateOffsetsH(pkg, out, ai);
-            
-            // 8. Class list with indices
             generateClassList(pkg, out, ai);
-            
-            // 9. Method list with offsets
             generateMethodList(pkg, out, ai);
-            
-            // 10. String dump with cross-refs
             generateStringDump(pkg, out, pi, ai);
-            
-            // 11. Generate cross-reference index
             generateXrefIndex(pkg, out);
+            generateSummary(pkg, out);
             
-            // Write log file
+            // Write log
             StringBuilder log = new StringBuilder();
             log.append("BlackBox Enhanced IL2CPP Dump Log\n");
             log.append("Package: ").append(pkg).append("\n");
             log.append("Time: ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date())).append("\n");
             log.append("Output: ").append(outputDir).append("\n");
-            log.append("Metadata found: ").append(metadataFile != null ? metadataFile.getAbsolutePath() : "NO").append("\n");
-            log.append("Metadata parsed: ").append(parsed).append("\n");
-            if (metaParser != null) {
-                log.append("Classes: ").append(metaParser.getClassCount()).append("\n");
-                log.append("Methods: ").append(metaParser.getMethodCount()).append("\n");
-                log.append("Fields: ").append(metaParser.getFieldCount()).append("\n");
-            }
-            log.append("libil2cpp.so: ").append(il2cppSo.exists() ? il2cppSo.length() + " bytes" : "NOT FOUND").append("\n");
+            File il2cppCheck = new File(ai.nativeLibraryDir, "libil2cpp.so");
+            log.append("libil2cpp.so: ").append(il2cppCheck.exists() ? il2cppCheck.length() + " bytes" : "NOT FOUND").append("\n");
             log.append("\nFiles generated:\n");
-            File outDir = new File(outputDir);
-            for (File f : outDir.listFiles()) {
-                log.append("  ").append(f.getName()).append(" (").append(f.length()).append(" bytes)\n");
+            File[] outFiles = out.listFiles();
+            if (outFiles != null) {
+                for (File f : outFiles) {
+                    log.append("  ").append(f.getName()).append(" (").append(f.length()).append(" bytes)\n");
+                }
             }
-            writeToFile(new File(logFile), log.toString());
+            writeToFile(new File(logDir, "dump_" + pkg + ".log"), log.toString());
             Slog.i(TAG, "  IL2CPP dump completed: " + outputDir);
-            Slog.i(TAG, "  Log written to: " + logFile);
             return true;
         } catch (Exception e) {
             Slog.e(TAG, "IL2CPP dump failed: " + e.getMessage());
             try {
-                File logDir2 = new File("/storage/emulated/0/Download/black/logs");
-                logDir2.mkdirs();
-                writeToFile(new File(logDir2, "dump_error_" + pkg + ".log"), 
+                File logDir = new File("/storage/emulated/0/Download/black/logs");
+                logDir.mkdirs();
+                writeToFile(new File(logDir, "dump_error_" + pkg + ".log"),
                     "Error: " + e.getMessage() + "\n" + Log.getStackTraceString(e));
             } catch (Exception ignored) {}
             return false;
         }
     }
     
+
     // ==================== DEX DUMP ====================
     
     public boolean dumpDEX(String pkg, String outputDir) {
