@@ -97,7 +97,12 @@ public class AppDumperService implements ISystemService {
                 "files/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/Managed/Metadata/global-metadata.dat",
                 "files/Managed/global-metadata.dat",
-                "global-metadata.dat"
+                "global-metadata.dat",
+                // MLBB and other game-specific paths
+                "files/Data/Managed/Metadata/global-metadata.dat",
+                "assets/bin/Data/Managed/Metadata/global-metadata.dat",
+                "bin/Data/Managed/Metadata/global-metadata.dat",
+                "Data/Managed/Metadata/global-metadata.dat"
             };
             for (String p : metaPaths) {
                 File m = new File(dataDir, p);
@@ -588,7 +593,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
-            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.7\n");
+            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.8\n");
             sb.append("// Package: ").append(pkg).append("\n");
             sb.append("// Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append("// Generated: ").append(ts).append("\n");
@@ -608,7 +613,12 @@ public class AppDumperService implements ISystemService {
                 "files/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/Managed/Metadata/global-metadata.dat",
                 "files/Managed/global-metadata.dat",
-                "global-metadata.dat"
+                "global-metadata.dat",
+                // MLBB and other game-specific paths
+                "files/Data/Managed/Metadata/global-metadata.dat",
+                "assets/bin/Data/Managed/Metadata/global-metadata.dat",
+                "bin/Data/Managed/Metadata/global-metadata.dat",
+                "Data/Managed/Metadata/global-metadata.dat"
             };
             // Also search common OBB/split paths
             String[] obbSearch = {
@@ -634,8 +644,32 @@ public class AppDumperService implements ISystemService {
                     Slog.w(TAG, "  IL2CPP metadata parse failed, using fallback");
                 }
             } else {
-                // Try recursive search in app data
-                Slog.w(TAG, "  global-metadata.dat not found in standard paths, searching recursively...");
+                // Try OBB directory (MLBB stores data there)
+                File obbDir = new File(ai.dataDir, "../");
+                Slog.w(TAG, "  global-metadata.dat not found, searching recursively...");
+                // Also check parent directories for split APK / OBB storage
+                String[] obbSearchDirs = {
+                    ai.dataDir,
+                    new File(ai.dataDir, "files").getAbsolutePath(),
+                    new File(ai.dataDir, "obb").getAbsolutePath(),
+                    Environment.getExternalStoragePublicDirectory("Android/obb/" + pkg).getAbsolutePath(),
+                    Environment.getExternalStoragePublicDirectory("Android/data/" + pkg).getAbsolutePath()
+                };
+                for (String searchDir : obbSearchDirs) {
+                    File dir = new File(searchDir);
+                    if (dir.exists()) {
+                        File found = findFileRecursive(dir, "global-metadata.dat", 10);
+                        if (found != null) {
+                            metadataFile = found;
+                            Slog.i(TAG, "  Found metadata: " + found.getAbsolutePath() + " (" + found.length() + " bytes)");
+                            metaParser = new MetadataParser();
+                            parsed = metaParser.parse(metadataFile);
+                            break;
+                        }
+                    }
+                }
+                // Final fallback: search entire data dir
+                if (metadataFile == null) {
                 File dataBase = new File(ai.dataDir);
                 if (dataBase.exists()) {
                     File found = findFileRecursive(dataBase, "global-metadata.dat", 8);

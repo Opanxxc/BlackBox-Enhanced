@@ -17,6 +17,7 @@ import top.niunaijun.blackbox.core.system.hidevpn.HideVpnService
 import top.niunaijun.blackbox.core.system.integrity.IntegrityBypassService
 import top.niunaijun.blackbox.core.system.bypass.HookDetectionBypassService
 import top.niunaijun.blackbox.core.system.bypass.BypassOnlineService
+import top.niunaijun.blackbox.core.system.rootmanager.RootManagerService
 import top.niunaijun.blackbox.core.system.shell.ShellScriptService
 import top.niunaijun.blackbox.core.system.location.EnhancedLocationService
 import top.niunaijun.blackbox.core.system.dumper.AppDumperService
@@ -123,28 +124,34 @@ class SettingFragment : PreferenceFragmentCompat() {
             AppManager.mBlackBoxLoader.invalidHideRoot(enabled)
         }
 
-        // Root Manager
+        // Root Manager - actually manages root access
         initSwitch("root_manager", "Root Manager", "Manage root access per-app (Magisk/KernelSU style)") { enabled ->
             Log.i(TAG, "Root Manager: ${if (enabled) "ON" else "OFF"}")
+            RootManagerService.get().setEnabled(enabled)
             if (enabled) {
                 HideRootService.get().setHideRootEnabled(true)
-                toast("Root Manager enabled - apps will see non-rooted status by default")
+                RootManagerService.get().createFakeSu()
+                toast("Root Manager enabled - manage per-app root in app settings")
+            } else {
+                toast("Root Manager disabled")
             }
         }
 
-        // Zygisk Support
+        // Zygisk Support - actually enables module injection
         initSwitch("zygisk_support", "Zygisk Support", "Enable Zygisk injection for modules") { enabled ->
             Log.i(TAG, "Zygisk Support: ${if (enabled) "ON" else "OFF"}")
+            RootManagerService.get().setZygiskEnabled(enabled)
             if (enabled) {
-                toast("Zygisk support enabled - module injection will be available")
+                toast("Zygisk enabled - modules can be loaded")
             }
         }
 
-        // LSPosed / Xposed Support
+        // LSPosed / Xposed Support - actually enables framework
         initSwitch("lsposed_support", "LSPosed / Xposed Support", "Enable LSPosed/Xposed framework") { enabled ->
             Log.i(TAG, "LSPosed Support: ${if (enabled) "ON" else "OFF"}")
+            RootManagerService.get().setLSPosedEnabled(enabled)
             if (enabled) {
-                toast("LSPosed/Xposed support enabled")
+                toast("LSPosed/Xposed enabled - hook framework active")
             }
         }
 
