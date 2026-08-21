@@ -164,9 +164,9 @@ jobs:
         echo "=== Release APK ==="
         ls -la app/build/outputs/apk/release/*.apk 2>/dev/null || echo "Not found"
         
-        # Copy APKs to root for release
-        cp app/build/outputs/apk/debug/app-debug.apk ./debug.apk 2>/dev/null || true
-        cp app/build/outputs/apk/release/app-release-unsigned.apk ./release.apk 2>/dev/null || true
+        # Copy universal APKs to root for release
+        cp app/build/outputs/apk/debug/BlackBox_5.0.0_universal-debug.apk ./BlackBox-Enhanced-debug.apk 2>/dev/null || true
+        cp app/build/outputs/apk/release/BlackBox_5.0.0_universal-release.apk ./BlackBox-Enhanced-release.apk 2>/dev/null || true
         
         echo "=== APKs ready ==="
         ls -la *.apk 2>/dev/null || echo "No APKs found"
@@ -208,8 +208,8 @@ jobs:
           2. Enable "Unknown Sources" in settings
           3. Install and enjoy!
         files: |
-          debug.apk
-          release.apk
+          BlackBox-Enhanced-debug.apk
+          BlackBox-Enhanced-release.apk
         draft: false
         prerelease: false
         make_latest: true
