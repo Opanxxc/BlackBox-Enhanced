@@ -9,12 +9,36 @@
                 android:summary="Manage Google Mobile Services"/>
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Security &amp; Privacy">
+    <PreferenceCategory app:title="Tools">
+        <Preference
+                android:key="mt_manager"
+                android:title="MT Manager"
+                android:summary="Open MT Manager (v2.26.4 Clone) - APK/DEX editor"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Root &amp; Kernel">
         <SwitchPreferenceCompat
                 app:key="root_hide"
                 app:title="Hide Root"
                 app:summary="Hide root status from apps"/>
 
+        <SwitchPreferenceCompat
+                app:key="root_manager"
+                app:title="Root Manager"
+                app:summary="Manage root access per-app (Magisk/KernelSU style)"/>
+
+        <SwitchPreferenceCompat
+                app:key="zygisk_support"
+                app:title="Zygisk Support"
+                app:summary="Enable Zygisk injection for modules (Magisk/KernelSU/APatch)"/>
+
+        <SwitchPreferenceCompat
+                app:key="lsposed_support"
+                app:title="LSPosed / Xposed Support"
+                app:summary="Enable LSPosed/Xposed framework for hook injection"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Security &amp; Privacy">
         <SwitchPreferenceCompat
                 app:key="vpn_hide"
                 app:title="Hide VPN"
@@ -39,6 +63,11 @@
                 app:key="xposed_hide"
                 app:title="Hide Xposed"
                 app:summary="Hide Xposed framework from detection"/>
+
+        <SwitchPreferenceCompat
+                app:key="online_bypass"
+                app:title="Online Bypass"
+                app:summary="Block anti-cheat/analytics network requests"/>
     </PreferenceCategory>
 
     <PreferenceCategory app:title="Advanced Features">
@@ -74,6 +103,11 @@
                 app:title="Enable App Dumper"
                 app:summary="Enable IL2CPP/DEX/Unity dumping"/>
 
+        <SwitchPreferenceCompat
+                app:key="auto_dump_enabled"
+                app:title="Auto Dump on Launch"
+                app:summary="Auto-dump IL2CPP when launching apps (OFF by default to prevent FC)"/>
+
         <Preference
                 app:key="dumper_il2cpp"
                 app:title="Dump IL2CPP"
@@ -91,6 +125,11 @@
     </PreferenceCategory>
 
     <PreferenceCategory app:title="System">
+        <Preference
+                app:key="view_logs"
+                app:title="View Dump Logs"
+                app:summary="Open /storage/emulated/0/Download/black/logs/"/>
+
         <Preference
                 app:key="send_logs"
                 app:title="Send Logs"

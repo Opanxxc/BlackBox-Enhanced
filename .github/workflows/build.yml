@@ -78,12 +78,12 @@ jobs:
         echo "Release APK: $RELEASE_APK"
         
         if [ -n "$DEBUG_APK" ]; then
-          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.1.5-debug.apk
+          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.1.6-debug.apk
           echo "✅ Debug APK ready"
         fi
         
         if [ -n "$RELEASE_APK" ]; then
-          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.1.5-release.apk
+          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.1.6-release.apk
           echo "✅ Release APK ready"
         fi
         
@@ -93,21 +93,21 @@ jobs:
         
     - name: Delete Old Release
       run: |
-        gh release delete v0.1.5 --repo ${{ github.repository }} --yes 2>/dev/null || true
-        git tag -d v0.1.5 2>/dev/null || true
-        git push origin :refs/tags/v0.1.5 2>/dev/null || true
+        gh release delete v0.1.6 --repo ${{ github.repository }} --yes 2>/dev/null || true
+        git tag -d v0.1.6 2>/dev/null || true
+        git push origin :refs/tags/v0.1.6 2>/dev/null || true
         
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "BlackBox Enhanced v0.1.5"
-        tag_name: "v0.1.5"
+        name: "BlackBox Enhanced v0.1.6"
+        tag_name: "v0.1.6"
         body: |
-          ## BlackBox Enhanced v0.1.5
+          ## BlackBox Enhanced v0.1.6
           
           **Enhanced by Panxcz & Freebuff** | Original by ALEX502
           
-          ### 📱 What's New in v0.1.5
+          ### 📱 What's New in v0.1.6
           - ✅ Default dump output: /storage/emulated/0/Download/black/dump/(packagename)
           - ✅ Fixed GMS Manager white screen
           - ✅ Persistent signing key (can install-over without losing data!)
@@ -140,8 +140,8 @@ jobs:
           - Original: ALEX502
           - Enhanced by: Panxcz & Freebuff
         files: |
-          BlackBox-Enhanced-v0.1.5-debug.apk
-          BlackBox-Enhanced-v0.1.5-release.apk
+          BlackBox-Enhanced-v0.1.6-debug.apk
+          BlackBox-Enhanced-v0.1.6-release.apk
         draft: false
         prerelease: false
         make_latest: true
@@ -154,20 +154,20 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: BlackBox-Enhanced-v0.1.5
+        name: BlackBox-Enhanced-v0.1.6
         path: "*.apk"
         retention-days: 90
         if-no-files-found: warn
         
     - name: Build Summary
       run: |
-        echo "## 🎉 Build Summary - BlackBox Enhanced v0.1.5" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 Build Summary - BlackBox Enhanced v0.1.6" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Universal APK Only" >> $GITHUB_STEP_SUMMARY
-        echo "- **Debug APK**: BlackBox-Enhanced-v0.1.5-debug.apk" >> $GITHUB_STEP_SUMMARY
-        echo "- **Release APK**: BlackBox-Enhanced-v0.1.5-release.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Debug APK**: BlackBox-Enhanced-v0.1.6-debug.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release APK**: BlackBox-Enhanced-v0.1.6-release.apk" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Download" >> $GITHUB_STEP_SUMMARY
-        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.1.5)" >> $GITHUB_STEP_SUMMARY
+        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.1.6)" >> $GITHUB_STEP_SUMMARY
