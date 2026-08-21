@@ -85,7 +85,7 @@ public class ElfParser {
     }
 
     public static ElfInfo parse(String soPath) {
-        ElfInfo info = new ElfInfo();
+        ElfInfo elfInfo = new ElfInfo();
         try (FileInputStream fis = new FileInputStream(soPath)) {
             byte[] allBytes = new byte[(int) fis.available()];
             fis.read(allBytes);
@@ -97,7 +97,7 @@ public class ElfParser {
             buf.get(magic);
             if (magic[0] != ELF_MAGIC[0] || magic[1] != ELF_MAGIC[1] ||
                 magic[2] != ELF_MAGIC[2] || magic[3] != ELF_MAGIC[3]) {
-                return info;
+                return elfInfo;
             }
 
             ElfHeader hdr = new ElfHeader();
@@ -150,7 +150,7 @@ public class ElfParser {
                 case 3: hdr.typeStr = "ET_DYN (PIE)"; break;
                 default: hdr.typeStr = "Unknown(" + hdr.type + ")"; break;
             }
-            info.header = hdr;
+            elfInfo.header = hdr;
 
             // Parse section headers
             List<SectionHeader> sects = new ArrayList<>();
@@ -195,7 +195,7 @@ public class ElfParser {
                 }
             }
 
-            info.sections = sects;
+            elfInfo.sections = sects;
 
             // Find and parse symbol/string tables
             for (SectionHeader sh : sects) {
@@ -208,7 +208,7 @@ public class ElfParser {
                     while (pos < stab.length) {
                         String s = readString(stab, pos);
                         if (!s.isEmpty()) {
-                            info.stringsByOffset.put(sh.offset + pos, s);
+                            elfInfo.stringsByOffset.put(sh.offset + pos, s);
                         }
                         pos += s.length() + 1;
                     }
@@ -235,16 +235,16 @@ public class ElfParser {
                                 sym.nameOffset = buf.getInt();
                                 sym.value = buf.getInt() & 0xFFFFFFFFL;
                                 sym.size = buf.getInt() & 0xFFFFFFFFL;
-                                int info = buf.get() & 0xFF;
-                                sym.bind = info >> 4;
-                                sym.type = info & 0xF;
+                                int symInfo = buf.get() & 0xFF;
+                                sym.bind = symInfo >> 4;
+                                sym.type = symInfo & 0xF;
                                 buf.getShort(); // shndx
                             } else {
                                 int nameIdx = buf.getInt();
                                 sym.nameOffset = nameIdx;
-                                int info = buf.get() & 0xFF;
-                                sym.bind = info >> 4;
-                                sym.type = info & 0xF;
+                                int symInfo = buf.get() & 0xFF;
+                                sym.bind = symInfo >> 4;
+                                sym.type = symInfo & 0xF;
                                 buf.get(); // other
                                 buf.getShort(); // shndx
                                 sym.value = buf.getLong();
@@ -252,7 +252,7 @@ public class ElfParser {
                             }
                             sym.name = readString(dynstr, sym.nameOffset & 0x7FFFFFFF);
                             if (sym.name != null && !sym.name.isEmpty()) {
-                                info.dynamicSymbols.add(sym);
+                                elfInfo.dynamicSymbols.add(sym);
                             }
                         }
                     }
@@ -262,7 +262,7 @@ public class ElfParser {
             // Determine base address from first loadable section
             for (SectionHeader sh : sects) {
                 if ((sh.flags & SHF_ALLOC) != 0 && sh.addr > 0) {
-                    info.baseAddr = sh.addr;
+                    elfInfo.baseAddr = sh.addr;
                     break;
                 }
             }
@@ -270,7 +270,7 @@ public class ElfParser {
         } catch (Exception e) {
             // Return partial info
         }
-        return info;
+        return elfInfo;
     }
 
     private static String readString(byte[] data, int offset) {
