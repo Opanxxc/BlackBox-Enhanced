@@ -35,6 +35,7 @@ public class MetadataParser {
         public int methodStart;
         public int methodCount;
         public int parentIndex;
+        public int declaringTypeIndex;
         public int flags;
         public int imageUrlIndex;
         public List<IL2CPPField> fields = new ArrayList<>();

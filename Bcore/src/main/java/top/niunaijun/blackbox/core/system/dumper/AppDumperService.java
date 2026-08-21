@@ -1315,7 +1315,7 @@ public class AppDumperService implements ISystemService {
                     String access = (m.accessFlags & 0x0008) != 0 ? "static " : "";
                     if ((m.accessFlags & 0x0400) != 0) access += "extern ";
                     sb.append(String.format("  %s%s %s.%s() // method_idx=%d codeOff=0x%08x\n",
-                        access, mapType(m.returnType), simpleName, m.methodName, m.methodIdx, m.codeOff));
+                        access, m.returnType, simpleName, m.methodName, m.methodIdx, m.codeOff));
                 }
                 sb.append("\n");
             }
