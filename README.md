@@ -182,6 +182,33 @@ val properties = IntegrityBypassService.get().getModifiedBuildProperties()
 val needsProtection = IntegrityBypassService.get().isProtectedPackage("com.google.android.gms")
 ```
 
+#### 🔐 Advanced Bypass (All-in-One)
+- Combine multiple bypass methods
+- Root + VPN + Integrity + Emulator + Hook bypass
+- Automatic bypass configuration
+- Comprehensive protection status
+- Recommendations for optimal protection
+
+```kotlin
+// Example: Apply all bypasses for an app
+AdvancedBypassService.get().applyAllBypasses("com.example.app")
+
+// Example: Check bypass status
+val status = AdvancedBypassService.get().getBypassStatus("com.example.app")
+if (status.isFullyProtected()) {
+    Log.d("Bypass", "App is fully protected!")
+}
+
+// Example: Get bypass recommendations
+val recommendations = AdvancedBypassService.get().getBypassRecommendations("com.example.app")
+for (rec in recommendations) {
+    Log.d("Bypass", rec)
+}
+
+// Example: Check if device appears legitimate
+val appearsLegitimate = AdvancedBypassService.get().appearsLegitimate()
+```
+
 ## 📋 Requirements
 
 - **Android Version**: Android 5.0 (API 21) or higher
@@ -374,6 +401,42 @@ val installer = IntegrityBypassService.get().getModifiedInstallerPackageName(pac
 
 // Check if package is from legitimate source
 val isLegitimate = IntegrityBypassService.get().isLegitimateSource(packageName: String)
+```
+
+### Advanced Bypass Service
+```kotlin
+// Enable/disable advanced bypass
+AdvancedBypassService.get().setAdvancedBypassEnabled(enabled: Boolean)
+
+// Apply all bypasses for a package
+AdvancedBypassService.get().applyAllBypasses(packageName: String)
+
+// Remove all bypasses for a package
+AdvancedBypassService.get().removeAllBypasses(packageName: String)
+
+// Get bypass status for a package
+val status = AdvancedBypassService.get().getBypassStatus(packageName: String)
+
+// Check if detection is bypassed
+val isBypassed = AdvancedBypassService.get().isDetectionBypassed(
+    packageName: String,
+    detectionMethod: String
+)
+
+// Get modified system properties
+val properties = AdvancedBypassService.get().getModifiedSystemProperties()
+
+// Check if device appears legitimate
+val appearsLegitimate = AdvancedBypassService.get().appearsLegitimate()
+
+// Get bypass recommendations
+val recommendations = AdvancedBypassService.get().getBypassRecommendations(packageName: String)
+
+// Add protected app
+AdvancedBypassService.get().addProtectedApp(packageName: String)
+
+// Remove protected app
+AdvancedBypassService.get().removeProtectedApp(packageName: String)
 ```
 
 ## 🔍 Troubleshooting

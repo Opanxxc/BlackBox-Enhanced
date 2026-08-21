@@ -27,6 +27,7 @@ import top.niunaijun.blackbox.core.system.auth.GoogleAuthService;
 import top.niunaijun.blackbox.core.system.hideroot.HideRootService;
 import top.niunaijun.blackbox.core.system.hidevpn.HideVpnService;
 import top.niunaijun.blackbox.core.system.integrity.IntegrityBypassService;
+import top.niunaijun.blackbox.core.system.bypass.AdvancedBypassService;
 
 import top.niunaijun.blackbox.core.system.user.BUserHandle;
 import top.niunaijun.blackbox.core.system.user.BUserManagerService;
@@ -76,6 +77,7 @@ public class BlackBoxSystem {
         mServices.add(HideVpnService.get());
         mServices.add(EnhancedLocationService.get());
         mServices.add(IntegrityBypassService.get());
+        mServices.add(AdvancedBypassService.get());
 
         for (ISystemService service : mServices) {
             service.systemReady();

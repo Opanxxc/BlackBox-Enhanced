@@ -24,6 +24,7 @@ import top.niunaijun.blackbox.core.env.BEnvironment;
 import top.niunaijun.blackbox.core.system.ISystemService;
 import top.niunaijun.blackbox.entity.location.BLocation;
 import top.niunaijun.blackbox.utils.Slog;
+import top.niunaijun.blackbox.utils.Slog;
 
 /**
  * Enhanced fake location service with GPS simulation, route following, and speed control.
