@@ -9,7 +9,7 @@
                 android:summary="Manage Google Mobile Services"/>
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Security & Privacy">
+    <PreferenceCategory app:title="Security &amp; Privacy">
         <SwitchPreferenceCompat
                 app:key="root_hide"
                 app:title="Hide Root"
