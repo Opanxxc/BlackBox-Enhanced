@@ -75,12 +75,12 @@ jobs:
         RELEASE_APK=$(find app/build/outputs/apk/release -name "*universal-release.apk" | head -1)
         
         if [ -n "$DEBUG_APK" ]; then
-          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.7-debug.apk
+          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.8-debug.apk
           echo "Debug APK prepared: $DEBUG_APK"
         fi
         
         if [ -n "$RELEASE_APK" ]; then
-          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.7-release.apk
+          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.8-release.apk
           echo "Release APK prepared: $RELEASE_APK"
         fi
         
@@ -90,17 +90,17 @@ jobs:
         
     - name: Delete Old Release
       run: |
-        gh release delete v0.0.7 --repo ${{ github.repository }} --yes 2>/dev/null || true
-        git tag -d v0.0.7 2>/dev/null || true
-        git push origin :refs/tags/v0.0.7 2>/dev/null || true
+        gh release delete v0.0.8 --repo ${{ github.repository }} --yes 2>/dev/null || true
+        git tag -d v0.0.8 2>/dev/null || true
+        git push origin :refs/tags/v0.0.8 2>/dev/null || true
         
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "BlackBox Enhanced v0.0.7"
-        tag_name: "v0.0.7"
+        name: "BlackBox Enhanced v0.0.8"
+        tag_name: "v0.0.8"
         body: |
-          ## BlackBox Enhanced v0.0.7
+          ## BlackBox Enhanced v0.0.8
           
           **Enhanced by Panxcz & Freebuff** | Original by ALEX502
           
@@ -138,8 +138,8 @@ jobs:
           - Original: ALEX502
           - Enhanced by: Panxcz & Freebuff
         files: |
-          BlackBox-Enhanced-v0.0.7-debug.apk
-          BlackBox-Enhanced-v0.0.7-release.apk
+          BlackBox-Enhanced-v0.0.8-debug.apk
+          BlackBox-Enhanced-v0.0.8-release.apk
         draft: false
         prerelease: false
         make_latest: true
@@ -149,21 +149,21 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: BlackBox-Enhanced-v0.0.7
+        name: BlackBox-Enhanced-v0.0.8
         path: "*.apk"
         retention-days: 90
         if-no-files-found: warn
         
     - name: Build Summary
       run: |
-        echo "## 🎉 Build Summary - BlackBox Enhanced v0.0.7" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 Build Summary - BlackBox Enhanced v0.0.8" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Generated APKs (Auto-Signed)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- **Debug APK**: BlackBox-Enhanced-v0.0.7-debug.apk" >> $GITHUB_STEP_SUMMARY
-        echo "- **Release APK**: BlackBox-Enhanced-v0.0.7-release.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Debug APK**: BlackBox-Enhanced-v0.0.8-debug.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release APK**: BlackBox-Enhanced-v0.0.8-release.apk" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Download" >> $GITHUB_STEP_SUMMARY
-        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.0.7)" >> $GITHUB_STEP_SUMMARY
+        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.0.8)" >> $GITHUB_STEP_SUMMARY
