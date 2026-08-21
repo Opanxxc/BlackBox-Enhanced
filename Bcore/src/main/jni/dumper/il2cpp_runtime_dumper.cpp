@@ -175,7 +175,7 @@ static int resolve_il2cpp_api(void) {
     }
 
     #define RESOLVE(name, type) do { \
-        p_##name = (type)dlsym(handle, #name); \
+        p_##name = reinterpret_cast<type>(dlsym(handle, #name)); \
         if (!p_##name) LOGE("Failed to resolve: %s", #name); \
     } while(0)
 

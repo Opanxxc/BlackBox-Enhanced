@@ -43,7 +43,7 @@ Hook/UnixFileSystemHook.cpp \
 Hook/BinderHook.cpp \
 Hook/BaseHook.cpp \
 JniHook/JniHook.cpp \
-../jni/dumper/il2cpp_runtime_dumper.c
+../jni/dumper/il2cpp_runtime_dumper.cpp
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 LOCAL_CFLAGS += -Wno-error=format-security -fvisibility=hidden -ffunction-sections -fdata-sections -w -std=c++17
