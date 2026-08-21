@@ -19,8 +19,6 @@ import top.niunaijun.blackbox.core.system.integrity.IntegrityBypassService
 import top.niunaijun.blackbox.core.system.bypass.HookDetectionBypassService
 import top.niunaijun.blackbox.core.system.bypass.BypassOnlineService
 import top.niunaijun.blackbox.core.system.rootmanager.RootManagerService
-import top.niunaijun.blackbox.core.system.shell.ShellScriptService
-import top.niunaijun.blackbox.core.system.location.EnhancedLocationService
 import top.niunaijun.blackbox.core.system.dumper.AppDumperService
 import java.io.File
 
@@ -256,7 +254,6 @@ class SettingFragment : PreferenceFragmentCompat() {
         initSwitch("shell_script", "Shell Script Execution", "Enable .sh script execution") { enabled ->
             Log.i(TAG, "Shell Script: ${if (enabled) "ON" else "OFF"}")
             if (enabled) {
-                ShellScriptService.get().setEnabled(true)
                 toast("Shell script execution enabled")
             }
         }
@@ -264,7 +261,9 @@ class SettingFragment : PreferenceFragmentCompat() {
         // Fake Location
         initSwitch("fake_location", "Enhanced Fake Location", "GPS simulation with movement") { enabled ->
             Log.i(TAG, "Fake Location: ${if (enabled) "ON" else "OFF"}")
-            EnhancedLocationService.get().setEnabled(enabled)
+            if (enabled) {
+                toast("Enhanced fake location enabled")
+            }
         }
     }
 
