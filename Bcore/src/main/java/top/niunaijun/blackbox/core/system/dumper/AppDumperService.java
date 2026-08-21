@@ -89,30 +89,15 @@ public class AppDumperService implements ISystemService {
                 }
             }
             
-            // 2. Copy global-metadata.dat
-            File dataDir = new File(ai.dataDir);
-            String[] metaPaths = {
-                "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/Managed/Metadata/global-metadata.dat",
-                "files/Managed/global-metadata.dat",
-                "global-metadata.dat",
-                // MLBB and other game-specific paths
-                "files/Data/Managed/Metadata/global-metadata.dat",
-                "assets/bin/Data/Managed/Metadata/global-metadata.dat",
-                "bin/Data/Managed/Metadata/global-metadata.dat",
-                "Data/Managed/Metadata/global-metadata.dat"
-            };
-            for (String p : metaPaths) {
-                File m = new File(dataDir, p);
-                if (m.exists()) {
-                    copyFile(m, new File(out, "global-metadata.dat"));
-                    hexdumpFirstNBytes(m, new File(out, "metadata_hexdump.txt"), 2048);
-                    extractStringsFromFile(m, new File(out, "metadata_strings.txt"), 4);
-                    Slog.i(TAG, "  global-metadata.dat: " + m.length() + " bytes");
-                    break;
-                }
+            // 2. Copy global-metadata.dat - search EVERYWHERE including OBB & APK
+            File metadataFile = findGlobalMetadata(pkg, ai);
+            if (metadataFile != null) {
+                copyFile(metadataFile, new File(out, "global-metadata.dat"));
+                hexdumpFirstNBytes(metadataFile, new File(out, "metadata_hexdump.txt"), 2048);
+                extractStringsFromFile(metadataFile, new File(out, "metadata_strings.txt"), 4);
+                Slog.i(TAG, "  global-metadata.dat: " + metadataFile.length() + " bytes from: " + metadataFile.getAbsolutePath());
+            } else {
+                Slog.w(TAG, "  global-metadata.dat NOT FOUND anywhere!");
             }
             
             // 3. Generate all dump files
@@ -334,6 +319,150 @@ public class AppDumperService implements ISystemService {
         
         Slog.i(TAG, "========== DUMP COMPLETE: " + pkg + " ==========");
         return ok;
+    }
+    
+    // ==================== METADATA SEARCH ====================
+    
+    /**
+     * Aggressively search for global-metadata.dat everywhere.
+     * Priority: dataDir > APK > OBB > external storage.
+     */
+    private File findGlobalMetadata(String pkg, ApplicationInfo ai) {
+        File dataDir = new File(ai.dataDir);
+        
+        // 1. Direct paths in dataDir (fastest)
+        String[] metaPaths = {
+            "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
+            "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
+            "files/bin/Data/Managed/Metadata/global-metadata.dat",
+            "files/Managed/Metadata/global-metadata.dat",
+            "files/Managed/global-metadata.dat",
+            "global-metadata.dat",
+            "files/Data/Managed/Metadata/global-metadata.dat",
+            "assets/bin/Data/Managed/Metadata/global-metadata.dat",
+            "bin/Data/Managed/Metadata/global-metadata.dat",
+            "Data/Managed/Metadata/global-metadata.dat",
+            "files/assets/bin/Data/Managed/Metadata/global-metadata.dat.bytes",
+            // MLBB specific
+            "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
+            "app_data/Metadata/global-metadata.dat"
+        };
+        for (String p : metaPaths) {
+            File m = new File(dataDir, p);
+            if (m.exists() && m.length() > 1000) {
+                Slog.i(TAG, "  Found metadata at: " + m.getAbsolutePath());
+                return m;
+            }
+        }
+        
+        // 2. Recursive search in dataDir
+        File found = findFileRecursive(dataDir, "global-metadata.dat", 10);
+        if (found != null && found.length() > 1000) {
+            Slog.i(TAG, "  Found metadata recursively in dataDir: " + found.getAbsolutePath());
+            return found;
+        }
+        
+        // 3. Search inside the APK itself (AI source dir)
+        File apkFile = new File(ai.sourceDir);
+        if (apkFile.exists()) {
+            File metaInApk = findMetadataInZip(apkFile);
+            if (metaInApk != null) {
+                Slog.i(TAG, "  Found metadata INSIDE APK: " + apkFile.getName());
+                return metaInApk;
+            }
+        }
+        
+        // 4. Search OBB expansion files (MLBB stores metadata here!)
+        File obbDir = new File("/storage/emulated/0/Android/obb/" + pkg);
+        if (obbDir.exists()) {
+            File[] obbFiles = obbDir.listFiles();
+            if (obbFiles != null) {
+                for (File obb : obbFiles) {
+                    if (obb.getName().endsWith(".obb") && obb.length() > 100000) {
+                        Slog.i(TAG, "  Searching OBB: " + obb.getName() + " (" + obb.length() + " bytes)");
+                        File metaInObb = findMetadataInZip(obb);
+                        if (metaInObb != null) {
+                            Slog.i(TAG, "  Found metadata INSIDE OBB: " + obb.getName());
+                            return metaInObb;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 5. Search dataDir/obb/ subdirectory
+        File localObb = new File(dataDir, "obb");
+        if (localObb.exists()) {
+            File[] localObbFiles = localObb.listFiles();
+            if (localObbFiles != null) {
+                for (File obb : localObbFiles) {
+                    if (obb.getName().endsWith(".obb") && obb.length() > 100000) {
+                        File metaInObb = findMetadataInZip(obb);
+                        if (metaInObb != null) return metaInObb;
+                    }
+                }
+            }
+        }
+        
+        // 6. Search Android/data/{pkg} and Android/obb/{pkg} recursively
+        String[] externalDirs = {
+            "/storage/emulated/0/Android/data/" + pkg,
+            "/storage/emulated/0/Android/obb/" + pkg,
+            dataDir.getAbsolutePath() + "/files",
+            dataDir.getAbsolutePath() + "/cache"
+        };
+        for (String dir : externalDirs) {
+            File d = new File(dir);
+            if (d.exists()) {
+                File deep = findFileRecursive(d, "global-metadata.dat", 8);
+                if (deep != null && deep.length() > 1000) {
+                    Slog.i(TAG, "  Found metadata in external: " + deep.getAbsolutePath());
+                    return deep;
+                }
+                // Also search ZIPs in this dir
+                File[] files = d.listFiles();
+                if (files != null) {
+                    for (File f : files) {
+                        if (f.getName().endsWith(".obb") || f.getName().endsWith(".apk")) {
+                            File metaInZip = findMetadataInZip(f);
+                            if (metaInZip != null) return metaInZip;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 7. Try inside the APK's assets (some games bundle it there)
+        if (apkFile.exists()) {
+            try {
+                java.util.zip.ZipFile zip = new java.util.zip.ZipFile(apkFile);
+                java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zip.entries();
+                while (entries.hasMoreElements()) {
+                    java.util.zip.ZipEntry entry = entries.nextElement();
+                    String name = entry.getName();
+                    if (name.contains("global-metadata") && name.endsWith(".dat")) {
+                        File tmp = new File(dataDir, "extracted_metadata.dat");
+                        java.io.InputStream is = zip.getInputStream(entry);
+                        FileOutputStream fos = new FileOutputStream(tmp);
+                        byte[] buf = new byte[8192];
+                        int len;
+                        while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+                        fos.close(); is.close();
+                        zip.close();
+                        if (tmp.length() > 1000) {
+                            Slog.i(TAG, "  Found metadata in APK assets: " + name);
+                            return tmp;
+                        }
+                    }
+                }
+                zip.close();
+            } catch (Exception e) {
+                Slog.w(TAG, "  APK search failed: " + e.getMessage());
+            }
+        }
+        
+        Slog.w(TAG, "  global-metadata.dat NOT found in any location for " + pkg);
+        return null;
     }
     
     // ==================== ANALYSIS ====================
@@ -601,51 +730,10 @@ public class AppDumperService implements ISystemService {
             
             boolean parsed = false;
             MetadataParser metaParser = null;
-            File dataDir = new File(ai.dataDir);
             File metadataFile = null;
             
-            // 1. Try standard paths
-            String[] metaPaths = {
-                "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/Managed/Metadata/global-metadata.dat",
-                "files/Managed/global-metadata.dat",
-                "files/Data/Managed/Metadata/global-metadata.dat",
-                "assets/bin/Data/Managed/Metadata/global-metadata.dat"
-            };
-            for (String p : metaPaths) {
-                File m = new File(dataDir, p);
-                if (m.exists()) { metadataFile = m; break; }
-            }
-            
-            // 2. Try OBB and external dirs
-            if (metadataFile == null) {
-                String[] searchDirs = {
-                    dataDir.getAbsolutePath(),
-                    new File(dataDir, "files").getAbsolutePath(),
-                    new File(dataDir, "obb").getAbsolutePath(),
-                    "/storage/emulated/0/Android/obb/" + pkg,
-                    "/storage/emulated/0/Android/data/" + pkg
-                };
-                for (String dir : searchDirs) {
-                    File d = new File(dir);
-                    if (d.exists()) {
-                        File found = findFileRecursive(d, "global-metadata.dat", 10);
-                        if (found != null) { metadataFile = found; break; }
-                        // Also check inside APK/OBB files
-                        File[] apks = d.listFiles();
-                        if (apks != null) {
-                            for (File apk : apks) {
-                                if (apk.getName().endsWith(".apk") || apk.getName().endsWith(".obb")) {
-                                    File inZip = findMetadataInZip(apk);
-                                    if (inZip != null) { metadataFile = inZip; break; }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            // Use the powerful findGlobalMetadata method
+            metadataFile = findGlobalMetadata(pkg, ai);
             
             // 3. Parse metadata
             if (metadataFile != null) {
