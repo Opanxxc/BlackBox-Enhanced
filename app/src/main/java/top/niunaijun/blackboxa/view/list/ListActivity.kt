@@ -117,6 +117,7 @@ class ListActivity : BaseActivity() {
         finish()
     }
 
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (viewBinding.searchView.isSearchOpen) {
             viewBinding.searchView.closeSearch()

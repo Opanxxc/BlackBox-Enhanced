@@ -280,12 +280,11 @@ class BlackBoxLoader {
                                             Log.w(TAG, "requestInstallPackage: file is null")
                                             return false
                                         }
-                                        val packageInfo =
-                                                context.packageManager.getPackageArchiveInfo(
+                                        context.packageManager.getPackageArchiveInfo(
                                                         file.absolutePath,
                                                         0
                                                 )
-                                        false
+                                        true
                                     } catch (e: Exception) {
                                         Log.e(TAG, "Error in requestInstallPackage: ${e.message}")
                                         false
@@ -298,6 +297,7 @@ class BlackBoxLoader {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun doOnCreate(context: Context) {
         try {
             BlackBoxCore.get().doCreate()

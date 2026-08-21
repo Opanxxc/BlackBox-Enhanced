@@ -137,13 +137,13 @@ class SettingFragment : PreferenceFragmentCompat() {
         }
 
         // Shell Script
-        initSwitch("shell_script", "Shell Script Execution", "Enable .sh script execution") { enabled ->
-            // Shell script is always enabled in this version
+        initSwitch("shell_script", "Shell Script Execution", "Enable .sh script execution") { _ ->
+            Log.d(TAG, "Shell script toggle")
         }
 
         // Fake Location
-        initSwitch("fake_location", "Enhanced Fake Location", "GPS simulation with movement") { enabled ->
-            // Fake location settings
+        initSwitch("fake_location", "Enhanced Fake Location", "GPS simulation with movement") { _ ->
+            Log.d(TAG, "Fake location toggle")
         }
     }
 

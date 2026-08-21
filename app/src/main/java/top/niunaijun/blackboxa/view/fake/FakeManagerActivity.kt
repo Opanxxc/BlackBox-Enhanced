@@ -159,6 +159,7 @@ class FakeManagerActivity : BaseActivity() {
     }
 
 
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (viewBinding.searchView.isSearchOpen) {
             viewBinding.searchView.closeSearch()
