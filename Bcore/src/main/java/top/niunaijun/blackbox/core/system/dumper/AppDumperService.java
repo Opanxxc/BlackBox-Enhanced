@@ -66,6 +66,11 @@ public class AppDumperService implements ISystemService {
     public boolean dumpIL2CPP(String pkg, String outputDir) {
         if (!mDumpEnabled) return false;
         Slog.i(TAG, "=== IL2CPP DUMP: " + pkg + " ===");
+        // Create log directory
+        File logDir = new File("/storage/emulated/0/Download/black/logs");
+        logDir.mkdirs();
+        String logFile = "/storage/emulated/0/Download/black/logs/dump_" + pkg + "_" + 
+            new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".log";
         try {
             PackageInfo pi = BlackBoxCore.getPackageManager().getPackageInfo(pkg, 0);
             ApplicationInfo ai = pi.applicationInfo;
@@ -126,10 +131,37 @@ public class AppDumperService implements ISystemService {
             // 11. Generate cross-reference index
             generateXrefIndex(pkg, out);
             
+            // Write log file
+            StringBuilder log = new StringBuilder();
+            log.append("BlackBox Enhanced IL2CPP Dump Log\n");
+            log.append("Package: ").append(pkg).append("\n");
+            log.append("Time: ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date())).append("\n");
+            log.append("Output: ").append(outputDir).append("\n");
+            log.append("Metadata found: ").append(metadataFile != null ? metadataFile.getAbsolutePath() : "NO").append("\n");
+            log.append("Metadata parsed: ").append(parsed).append("\n");
+            if (metaParser != null) {
+                log.append("Classes: ").append(metaParser.getClassCount()).append("\n");
+                log.append("Methods: ").append(metaParser.getMethodCount()).append("\n");
+                log.append("Fields: ").append(metaParser.getFieldCount()).append("\n");
+            }
+            log.append("libil2cpp.so: ").append(il2cppSo.exists() ? il2cppSo.length() + " bytes" : "NOT FOUND").append("\n");
+            log.append("\nFiles generated:\n");
+            File outDir = new File(outputDir);
+            for (File f : outDir.listFiles()) {
+                log.append("  ").append(f.getName()).append(" (").append(f.length()).append(" bytes)\n");
+            }
+            writeToFile(new File(logFile), log.toString());
             Slog.i(TAG, "  IL2CPP dump completed: " + outputDir);
+            Slog.i(TAG, "  Log written to: " + logFile);
             return true;
         } catch (Exception e) {
             Slog.e(TAG, "IL2CPP dump failed: " + e.getMessage());
+            try {
+                File logDir2 = new File("/storage/emulated/0/Download/black/logs");
+                logDir2.mkdirs();
+                writeToFile(new File(logDir2, "dump_error_" + pkg + ".log"), 
+                    "Error: " + e.getMessage() + "\n" + Log.getStackTraceString(e));
+            } catch (Exception ignored) {}
             return false;
         }
     }
@@ -569,7 +601,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
-            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.3\n");
+            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.4\n");
             sb.append("// Package: ").append(pkg).append("\n");
             sb.append("// Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append("// Generated: ").append(ts).append("\n");
@@ -586,7 +618,15 @@ public class AppDumperService implements ISystemService {
             String[] metaPaths = {
                 "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
-                "files/bin/Data/Managed/Metadata/global-metadata.dat"
+                "files/bin/Data/Managed/Metadata/global-metadata.dat",
+                "files/Managed/Metadata/global-metadata.dat",
+                "files/Managed/global-metadata.dat",
+                "global-metadata.dat"
+            };
+            // Also search common OBB/split paths
+            String[] obbSearch = {
+                "/data/data/" + pkg + "/files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
+                "/data/user/0/" + pkg + "/files/assets/bin/Data/Managed/Metadata/global-metadata.dat"
             };
             for (String p : metaPaths) {
                 File f = new File(dataDir, p);
@@ -607,7 +647,21 @@ public class AppDumperService implements ISystemService {
                     Slog.w(TAG, "  IL2CPP metadata parse failed, using fallback");
                 }
             } else {
-                Slog.w(TAG, "  global-metadata.dat not found, using fallback");
+                // Try recursive search in app data
+                Slog.w(TAG, "  global-metadata.dat not found in standard paths, searching recursively...");
+                File dataBase = new File(ai.dataDir);
+                if (dataBase.exists()) {
+                    File found = findFileRecursive(dataBase, "global-metadata.dat", 8);
+                    if (found != null) {
+                        metadataFile = found;
+                        Slog.i(TAG, "  Found metadata recursively: " + found.getAbsolutePath() + " (" + found.length() + " bytes)");
+                        metaParser = new MetadataParser();
+                        parsed = metaParser.parse(metadataFile);
+                    }
+                }
+                if (metadataFile == null) {
+                    Slog.w(TAG, "  global-metadata.dat not found anywhere, using fallback");
+                }
             }
             
             // Also try to find libil2cpp.so for symbol resolution
@@ -1379,6 +1433,24 @@ public class AppDumperService implements ISystemService {
             Slog.i(TAG, "  il2cpp_strings.txt: " + totalStrings + " real strings");
         } catch (Exception e) { }
     }
+    private File findFileRecursive(File dir, String fileName, int maxDepth) {
+        if (maxDepth <= 0 || !dir.exists()) return null;
+        try {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isDirectory()) {
+                        File found = findFileRecursive(f, fileName, maxDepth - 1);
+                        if (found != null) return found;
+                    } else if (f.getName().equals(fileName)) {
+                        return f;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+    
     private void generateXrefIndex(String pkg, File output) {
         try {
             StringBuilder sb = new StringBuilder();
