@@ -24,6 +24,7 @@ import top.niunaijun.blackboxa.view.apps.AppsFragment
 import top.niunaijun.blackboxa.view.base.LoadingActivity
 import top.niunaijun.blackboxa.view.fake.FakeManagerActivity
 import top.niunaijun.blackboxa.view.list.ListActivity
+import top.niunaijun.blackboxa.util.FullScreenHelper
 import top.niunaijun.blackboxa.view.setting.SettingActivity
 
 class MainActivity : LoadingActivity() {
@@ -50,6 +51,9 @@ class MainActivity : LoadingActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             super.onCreate(savedInstanceState)
+
+            // Game-like immersive fullscreen
+            FullScreenHelper.enableImmersive(this)
 
             try {
                 BlackBoxCore.get().onBeforeMainActivityOnCreate(this)
