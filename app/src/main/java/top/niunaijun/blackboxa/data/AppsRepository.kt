@@ -429,13 +429,13 @@ class AppsRepository {
             // Auto-dump only if explicitly enabled (off by default to prevent force close)
             try {
                 val dumper = top.niunaijun.blackbox.core.system.dumper.AppDumperService.get()
-                val autoDumpPref = BlackBoxCore.getContext().getSharedPreferences("settings", 0)
+                val autoDumpPref = android.preference.PreferenceManager.getDefaultSharedPreferences(BlackBoxCore.getContext())
                 val autoDump = autoDumpPref.getBoolean("auto_dump_enabled", false)
-                if (autoDump && dumper.isDumpEnabled && dumper.isIL2CPPApp(packageName)) {
-                    Log.i(TAG, "Auto-dumping IL2CPP for $packageName (delayed 8s)")
+                if (autoDump && dumper.isDumpEnabled) {
+                    Log.i(TAG, "Auto-dumping IL2CPP for $packageName (delayed 3s)")
                     Thread {
                         try {
-                            Thread.sleep(8000) // Wait for app to fully load
+                            Thread.sleep(3000) // Wait for app to fully load
                             val outputDir = top.niunaijun.blackbox.core.system.dumper.AppDumperService.getDefaultDumpDir(packageName)
                             dumper.dumpAll(packageName, outputDir)
                             Log.i(TAG, "Dump completed: $outputDir")
@@ -449,6 +449,12 @@ class AppsRepository {
             }
             
             // Launch the app
+            // Save last launched package for manual dump
+            try {
+                val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(BlackBoxCore.getContext())
+                prefs.edit().putString("last_launched_pkg", packageName).apply()
+            } catch (e: Exception) { }
+            
             val result = BlackBoxCore.get().launchApk(packageName, userId)
             Log.i(TAG, "Launch result for $packageName: $result")
             launchLiveData.postValue(result)

@@ -266,21 +266,45 @@ class SettingFragment : PreferenceFragmentCompat() {
             }
         }
 
-        // Dump IL2CPP
+        // Dump IL2CPP - triggers manual dump
         findPreference<Preference>("dumper_il2cpp")?.setOnPreferenceClickListener {
-            toast("IL2CPP dump will be performed when launching an app")
+            AppDumperService.get().setDumpEnabled(true)
+            toast("IL2CPP dump enabled - will dump on next app launch")
+            // Also try to dump the last launched app
+            try {
+                val prefs = android.preference.PreferenceManager.getDefaultSharedPreferences(requireContext())
+                val lastPkg = prefs.getString("last_launched_pkg", "") ?: ""
+                if (lastPkg.isNotEmpty()) {
+                    Thread {
+                        try {
+                            val outputDir = AppDumperService.getDefaultDumpDir(lastPkg)
+                            AppDumperService.get().dumpIL2CPP(lastPkg, outputDir + "/il2cpp")
+                            android.util.Log.i(TAG, "Manual IL2CPP dump completed: $outputDir")
+                        } catch (e: Exception) {
+                            android.util.Log.e(TAG, "Manual IL2CPP dump failed: ${e.message}")
+                        }
+                    }.start()
+                    toast("Dumping IL2CPP for $lastPkg...")
+                } else {
+                    toast("No app launched yet. Launch an app first, then dump.")
+                }
+            } catch (e: Exception) {
+                toast("Dump triggered - will run on next launch")
+            }
             true
         }
 
         // Dump DEX
         findPreference<Preference>("dumper_dex")?.setOnPreferenceClickListener {
-            toast("DEX dump will be performed when launching an app")
+            AppDumperService.get().setDumpEnabled(true)
+            toast("DEX dump enabled - will dump on next app launch")
             true
         }
 
         // Dump Native SO
         findPreference<Preference>("dumper_native")?.setOnPreferenceClickListener {
-            toast("Native SO dump will be performed when launching an app")
+            AppDumperService.get().setDumpEnabled(true)
+            toast("Native SO dump enabled - will dump on next app launch")
             true
         }
     }
