@@ -23,6 +23,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <android/log.h>
 #include <string>
 #include <vector>
