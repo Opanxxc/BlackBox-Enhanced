@@ -238,7 +238,7 @@ public class ShellScriptService implements ISystemService {
         public void runFromContent() {
             try {
                 // Create temporary script file
-                File tempDir = new File(BEnvironment.getDataDir(), "scripts");
+                File tempDir = new File(BEnvironment.getCacheDir(), "scripts");
                 tempDir.mkdirs();
                 
                 File scriptFile = new File(tempDir, mScriptName != null ? mScriptName : "script_" + mSessionId + ".sh");
@@ -284,7 +284,7 @@ public class ShellScriptService implements ISystemService {
             if (mWorkingDir != null) {
                 pb.directory(new File(mWorkingDir));
             } else {
-                pb.directory(new File(BEnvironment.getDataDir()));
+                pb.directory(new File(BEnvironment.getVirtualRoot()));
             }
             
             // Set environment variables
@@ -296,8 +296,8 @@ public class ShellScriptService implements ISystemService {
             // Add virtual environment variables
             env.put("VIRTUAL_ENV", "1");
             env.put("BLACKBOX_ENV", "1");
-            env.put("HOME", BEnvironment.getDataDir().getAbsolutePath());
-            env.put("TMPDIR", new File(BEnvironment.getDataDir(), "tmp").getAbsolutePath());
+            env.put("HOME", BEnvironment.getVirtualRoot().getAbsolutePath());
+            env.put("TMPDIR", new File(BEnvironment.getCacheDir(), "tmp").getAbsolutePath());
             
             // Redirect error stream
             pb.redirectErrorStream(true);

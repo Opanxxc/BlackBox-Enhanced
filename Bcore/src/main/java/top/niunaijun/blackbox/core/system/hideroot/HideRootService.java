@@ -333,7 +333,10 @@ public class HideRootService implements ISystemService {
      * @return List of package names
      */
     public Set<String> getPackagesToHideFrom() {
-        Set<String> packages = new HashSet<>(COMMON_ROOT_PACKAGES);
+        Set<String> packages = new HashSet<>();
+        for (String pkg : COMMON_ROOT_PACKAGES) {
+            packages.add(pkg);
+        }
         packages.addAll(mRootPackages);
         return packages;
     }

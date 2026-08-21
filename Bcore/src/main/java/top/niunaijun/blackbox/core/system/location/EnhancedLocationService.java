@@ -345,30 +345,20 @@ public class EnhancedLocationService implements ISystemService {
      * @param packageName Package name
      * @return Simulated GPS status
      */
-    public GpsStatus getSimulatedGpsStatus(String packageName) {
+    public int getSimulatedSatelliteCount(String packageName) {
         LocationConfig config = mLocationConfigs.get(packageName);
         if (config == null || !config.simulateSatellites) {
-            return null;
+            return 0;
         }
-        
-        // Create simulated GPS status
-        GpsStatus.Builder builder = new GpsStatus.Builder();
-        
-        // Add simulated satellites
-        Random random = new Random();
-        for (int i = 0; i < config.satelliteCount; i++) {
-            float azimuth = random.nextFloat() * 360;
-            float elevation = random.nextFloat() * 90;
-            float signalStrength = config.satelliteSignal * (0.5f + random.nextFloat() * 0.5f);
-            
-            // Create satellite (API level dependent)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                // For API 24+, we'd use the newer API
-                // For now, we'll return null as GpsStatus.Builder is deprecated
-            }
+        return config.satelliteCount;
+    }
+    
+    public float getSimulatedSatelliteSignal(String packageName) {
+        LocationConfig config = mLocationConfigs.get(packageName);
+        if (config == null || !config.simulateSatellites) {
+            return 0.0f;
         }
-        
-        return null; // Placeholder for compatibility
+        return config.satelliteSignal;
     }
     
     /**
