@@ -640,7 +640,7 @@ public class AppDumperService implements ISystemService {
             for (Map.Entry<String, List<DexParser.DexClass>> entry : packages.entrySet()) {
                 sb.append("// ═══ Package: ").append(entry.getKey()).append(" ═══\n\n");
                 for (DexParser.DexClass cls : entry.getValue()) {
-                    sb.append("[Il2CppDummyDll.ClassMetadata("0x").append(String.format("%08x", cls.classIdx * 0x100)).append("")]\n");
+                    sb.append("[Il2CppDummyDll.ClassMetadata(").append("0x").append(String.format("%08x", cls.classIdx * 0x100)).append(")]\n");
                     String simpleName = cls.className.contains(".") ? 
                         cls.className.substring(cls.className.lastIndexOf(".") + 1) : cls.className;
                     String parent = cls.superclass.isEmpty() ? "Il2CppObject" : 
