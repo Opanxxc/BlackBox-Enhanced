@@ -2,40 +2,99 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
-
-
-    <PreferenceCategory app:title="@string/other">
-
+    <PreferenceCategory app:title="GMS">
         <Preference
                 android:key="gms_manager"
-                android:title="@string/gms_manager"
-                android:summary="@string/jump_gms"/>
+                android:title="GMS Manager"
+                android:summary="Manage Google Mobile Services"/>
+    </PreferenceCategory>
 
-
-
+    <PreferenceCategory app:title="Security & Privacy">
         <SwitchPreferenceCompat
                 app:key="root_hide"
-                app:title="@string/hide_root" />
+                app:title="Hide Root"
+                app:summary="Hide root status from apps"/>
 
         <SwitchPreferenceCompat
+                app:key="vpn_hide"
+                app:title="Hide VPN"
+                app:summary="Hide VPN connections from apps"/>
+
+        <SwitchPreferenceCompat
+                app:key="integrity_bypass"
+                app:title="SafetyNet/Play Integrity Bypass"
+                app:summary="Bypass SafetyNet and Play Integrity checks"/>
+
+        <SwitchPreferenceCompat
+                app:key="hook_bypass"
+                app:title="Hook Detection Bypass"
+                app:summary="Bypass Frida, Xposed, Substrate detection"/>
+
+        <SwitchPreferenceCompat
+                app:key="frida_hide"
+                app:title="Hide Frida"
+                app:summary="Hide Frida server from detection"/>
+
+        <SwitchPreferenceCompat
+                app:key="xposed_hide"
+                app:title="Hide Xposed"
+                app:summary="Hide Xposed framework from detection"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="Advanced Features">
+        <SwitchPreferenceCompat
                 app:key="daemon_enable"
-                app:title="@string/daemon_enable" />
+                app:title="Daemon Service"
+                app:summary="Enable background daemon service"/>
 
         <SwitchPreferenceCompat
                 app:key="use_vpn_network"
-                app:title="@string/use_vpn_network"
-                app:summary="@string/use_vpn_network_summary" />
+                app:title="VPN Network"
+                app:summary="Route traffic through VPN"/>
 
         <SwitchPreferenceCompat
                 app:key="disable_flag_secure"
-                app:title="@string/disable_flag_secure"
-                app:summary="@string/disable_flag_secure_summary" />
+                app:title="Disable Flag Secure"
+                app:summary="Allow screenshots in secure apps"/>
+
+        <SwitchPreferenceCompat
+                app:key="shell_script"
+                app:title="Shell Script Execution"
+                app:summary="Enable .sh script execution"/>
+
+        <SwitchPreferenceCompat
+                app:key="fake_location"
+                app:title="Enhanced Fake Location"
+                app:summary="GPS simulation with movement"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="App Dumper">
+        <SwitchPreferenceCompat
+                app:key="dumper_enable"
+                app:title="Enable App Dumper"
+                app:summary="Enable IL2CPP/DEX/Unity dumping"/>
 
         <Preference
-                android:key="send_logs"
-                android:title="Send Logs"
-                android:summary="Upload debug logs to developer" />
+                app:key="dumper_il2cpp"
+                app:title="Dump IL2CPP"
+                app:summary="Generate dump.cs, il2cpp.h, main.h, game.h"/>
 
+        <Preference
+                app:key="dumper_dex"
+                app:title="Dump DEX"
+                app:summary="Extract APK for decompilation"/>
+
+        <Preference
+                app:key="dumper_native"
+                app:title="Dump Native SO"
+                app:summary="Extract all .so libraries"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="System">
+        <Preference
+                app:key="send_logs"
+                app:title="Send Logs"
+                app:summary="Upload debug logs to developer"/>
     </PreferenceCategory>
 
 </PreferenceScreen>
