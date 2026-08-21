@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import top.niunaijun.blackbox.core.system.ISystemService;
 import top.niunaijun.blackbox.utils.Slog;
 
 /**
@@ -21,7 +22,7 @@ import top.niunaijun.blackbox.utils.Slog;
  * Features: su binary spoof, file system interception, Magisk/KSU/APatch bypass,
  * per-app root control, module loading.
  */
-public class RootManagerService {
+public class RootManagerService implements ISystemService {
     private static final String TAG = "RootManager";
     private static final RootManagerService sInstance = new RootManagerService();
 
@@ -395,6 +396,13 @@ public class RootManagerService {
             }
         }
         file.delete();
+    }
+
+    // ==================== LIFECYCLE ====================
+
+    @Override
+    public void systemReady() {
+        Slog.i(TAG, "RootManagerService v0.2.0 initialized");
     }
 
     // ==================== STATUS ====================
