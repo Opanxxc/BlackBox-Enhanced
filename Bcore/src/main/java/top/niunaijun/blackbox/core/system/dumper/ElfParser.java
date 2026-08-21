@@ -67,6 +67,7 @@ public class ElfParser {
 
     public static class SymbolEntry {
         public long offset;
+        public int nameOffset;
         public String name;
         public int type;
         public int bind;
