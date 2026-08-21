@@ -284,7 +284,7 @@ public class ShellScriptService implements ISystemService {
             if (mWorkingDir != null) {
                 pb.directory(new File(mWorkingDir));
             } else {
-                pb.directory(new File(BEnvironment.getVirtualRoot()));
+                pb.directory(BEnvironment.getVirtualRoot());
             }
             
             // Set environment variables
