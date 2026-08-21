@@ -1,4 +1,4 @@
-# BlackBox Enhanced v0.0.10
+# BlackBox Enhanced v0.1.1
 
 <p align="center">
   <img src="assets/usage.gif" alt="BlackBox Banner" width="100%"/>
@@ -8,7 +8,7 @@
 
 BlackBox Enhanced is a powerful virtual engine with advanced app analysis, security bypass, and dumping capabilities.
 
-## 🚀 What's New in v0.0.10
+## 🚀 What's New in v0.1.1
 
 - ✅ **Default dump output**: `/storage/emulated/0/Download/black/dump/(packagename)`
 - ✅ **Persistent signing key** — install-over without losing game data!
@@ -74,7 +74,7 @@ AppDumperService.get().dumpAll(packageName, "/custom/path");
 
 ## 📲 Download
 
-[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.0.10)
+[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.1.1)
 
 > **Note:** Only universal APK uploaded (works on all architectures)
 

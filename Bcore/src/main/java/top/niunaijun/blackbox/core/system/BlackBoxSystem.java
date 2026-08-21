@@ -30,6 +30,9 @@ import top.niunaijun.blackbox.core.system.integrity.IntegrityBypassService;
 import top.niunaijun.blackbox.core.system.bypass.AdvancedBypassService;
 import top.niunaijun.blackbox.core.system.bypass.HookDetectionBypassService;
 import top.niunaijun.blackbox.core.system.dumper.AppDumperService;
+import top.niunaijun.blackbox.core.system.dumper.MemoryDumper;
+import top.niunaijun.blackbox.core.system.dumper.HookDumper;
+import top.niunaijun.blackbox.core.system.dumper.DumperAntiDetect;
 
 import top.niunaijun.blackbox.core.system.user.BUserHandle;
 import top.niunaijun.blackbox.core.system.user.BUserManagerService;
@@ -82,6 +85,7 @@ public class BlackBoxSystem {
         mServices.add(AdvancedBypassService.get());
         mServices.add(HookDetectionBypassService.get());
         mServices.add(AppDumperService.get());
+        // MemoryDumper, HookDumper, DumperAntiDetect are singletons used on-demand
 
         for (ISystemService service : mServices) {
             service.systemReady();

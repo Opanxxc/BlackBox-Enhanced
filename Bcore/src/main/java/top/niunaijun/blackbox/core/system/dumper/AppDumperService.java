@@ -275,6 +275,37 @@ public class AppDumperService implements ISystemService {
         ok |= dumpNativeLibs(pkg, outputDir + "/native");
         ok |= dumpUnity(pkg, outputDir + "/unity");
         
+        // 5. Memory dump from /proc/self/maps
+        try {
+            File memDir = new File(outputDir + "/memory");
+            memDir.mkdirs();
+            MemoryDumper.dumpAllLibraries(new File(memDir, "libs"));
+            MemoryDumper.dumpAllDex(new File(memDir, "dex"));
+            writeToFile(new File(memDir, "maps.txt"), MemoryDumper.generateMapReport());
+            Slog.i(TAG, "  Memory dump completed");
+        } catch (Exception e) {
+            Slog.w(TAG, "  Memory dump failed: " + e.getMessage());
+        }
+        
+        // 6. Hook dump from classloader interception
+        try {
+            File hookDir = new File(outputDir + "/hooks");
+            hookDir.mkdirs();
+            HookDumper.get().startCapture(hookDir);
+            // Let it capture for a bit
+            Thread.sleep(500);
+            HookDumper.get().stopCapture();
+            Slog.i(TAG, "  Hook dump completed: " + HookDumper.get().getClassCount() + " classes");
+        } catch (Exception e) {
+            Slog.w(TAG, "  Hook dump failed: " + e.getMessage());
+        }
+        
+        // 7. Anti-detection report
+        try {
+            DumperAntiDetect.get().activate();
+            writeToFile(new File(out, "anti_detect.txt"), DumperAntiDetect.get().generateReport());
+        } catch (Exception e) { }
+        
         generateSummary(pkg, out);
         
         Slog.i(TAG, "========== DUMP COMPLETE: " + pkg + " ==========");
