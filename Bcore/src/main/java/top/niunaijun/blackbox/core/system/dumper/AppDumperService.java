@@ -212,7 +212,7 @@ public class AppDumperService implements ISystemService {
         boolean dexSuccess = dumpDEX(packageName, outputDir + "/dex");
         
         // Generate summary
-        generateSummary(packageName, outputDir);
+        generateSummary(packageName, new File(outputDir));
         
         return il2cppSuccess || dexSuccess;
     }
