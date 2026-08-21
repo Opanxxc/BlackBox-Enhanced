@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import top.niunaijun.blackboxa.data.FakeLocationRepository
 
 
-class FakeLocationFactory(private val repo: FakeLocationRepository) :
+class @Suppress("UNCHECKED_CAST") FakeLocationFactory(private val repo: FakeLocationRepository) :
     ViewModelProvider.NewInstanceFactory() {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

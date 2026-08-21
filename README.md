@@ -1,138 +1,109 @@
-# BlackBox Enhanced v0.1.1
+# BlackBox Enhanced
 
-<p align="center">
-  <img src="assets/usage.gif" alt="BlackBox Banner" width="100%"/>
-</p>
+> Android virtual environment with IL2CPP dumper and app isolation.
 
-**Enhanced by Panxcz & Freebuff** | Original by ALEX502
+**Based on [BlackBox by ALEX5402](https://github.com/ALEX5402/NewBlackbox)**  
+**Enhanced by Panxcz & Freebuff**
 
-BlackBox Enhanced is a powerful virtual engine with advanced app analysis, security bypass, and dumping capabilities.
+## What This Is
 
-## 🚀 What's New in v0.1.1
+BlackBox Enhanced creates a virtual Android environment where you can run apps in isolation. It includes a dumper that attempts to extract IL2CPP metadata (class names, method names, field names, offsets) from apps that use Unity's IL2CPP backend.
 
-- ✅ **Default dump output**: `/storage/emulated/0/Download/black/dump/(packagename)`
-- ✅ **Persistent signing key** — install-over without losing game data!
-- ✅ **Fixed GMS Manager** — no more white screen
-- ✅ **Fixed MT Manager** — no more crashes
-- ✅ **Immersive fullscreen** — game-like display
-- ✅ **Android 5.0 - 17** support
+**Important caveats:**
+- The IL2CPP dumper works best with apps that have `global-metadata.dat` in their data directory
+- Field offsets are approximate (simplified alignment) - not exact struct layouts
+- Method RVAs are extracted from metadata tables, not from disassembled code
+- The dumper cannot bypass server-side validation or online anti-cheat that phones home to external servers
+- This tool is for **educational and research purposes**
 
-## 📱 Features
+## Features
 
-### 📱 App Dumper
-| Feature | Description |
-|---------|-------------|
-| **IL2CPP Dump** | dump.cs, il2cpp.h, class/method enumeration |
-| **Unity Dump** | main.h, game.h, unity_types.h |
-| **DEX Extraction** | APK decompilation support |
-| **Native SO Dump** | All .so libraries + analysis |
-| **String Dump** | Extract all strings from app |
-| **Custom Output** | Default: `/storage/emulated/0/Download/black/dump/(packagename)` |
+### Virtual Environment
+- Run apps in isolated containers (like a sandbox)
+- Multi-account support (run same app multiple times)
+- Shell script (.sh) execution support
 
-### 🔐 Security Bypass
-| Feature | Description |
-|---------|-------------|
-| **Root Hiding** | Magisk, KSU, APatch, Kernel-level |
-| **Hook Bypass** | Frida, Xposed, Substrate |
-| **Integrity Bypass** | SafetyNet, Play Integrity |
-| **VPN Hiding** | Hide VPN connections |
-| **Memory Hiding** | /proc/maps manipulation |
+### IL2CPP Dumper (v0.1.3)
+- **Real metadata parsing** from `global-metadata.dat` (IL2CPP v24-v29)
+- Extracts actual class names, namespaces, field names, method names
+- Generates `dump.cs` with real IL2CPP class/method structure
+- Computes approximate field offsets within class structs
+- Extracts method RVAs and tokens from metadata tables
+- Generates `il2cpp.h` / `main.h` / `game.h` / `il2cpp_offsets.h`
+- ELF binary analysis of `libil2cpp.so`
+- Hex dump and string extraction from native libraries
+- Fallback to raw string extraction when metadata parse fails
+- DEX file parsing for additional class/method information
 
-### 🛠️ Tools
-| Feature | Description |
-|---------|-------------|
-| **Shell Scripts** | Execute .sh files |
-| **Google Login** | Account management |
-| **Fake Location** | GPS simulation |
-| **Device Spoofing** | Modify device info |
+### Anti-Detection Bypasses
+- Root hiding (Magisk, KSU, APatch)
+- Frida/Xposed/Substrate hook detection bypass
+- SafetyNet/Play Integrity bypass (MeowBox / YuriKey modes)
+- VPN hiding
+- Emulator detection bypass
+- Online bypass (blocks known anti-cheat/analytics hosts)
+- Enhanced fake location with GPS simulation
 
-## 📱 App Dumper Output Path
+### Other
+- Immersive fullscreen mode (game-like)
+- Persistent signing key (install-over without data loss)
+- Debug logging throughout
+- Android 5.0 - 17 support
 
-All dump files are saved to:
+## Dump Output
+
+All dumps go to: `/storage/emulated/0/Download/black/dump/(packagename)/`
+
 ```
-/storage/emulated/0/Download/black/dump/(packagename)/
-├── il2cpp/          # IL2CPP dump files
-│   ├── dump.cs
-│   ├── il2cpp.h
-│   ├── main.h
-│   ├── game.h
-│   └── ...
-├── dex/             # DEX extraction
-├── native/          # Native SO libraries
-├── unity/           # Unity-specific files
-└── SUMMARY.txt      # Dump summary
+├── il2cpp/
+│   ├── dump.cs                ← IL2CPP class/method dump (from metadata)
+│   ├── il2cpp_classes.txt     ← Class enumeration (from DEX)
+│   ├── il2cpp_methods.txt     ← Method enumeration (from DEX)
+│   ├── il2cpp_strings.txt     ← String pool dump (from DEX)
+│   ├── il2cpp.h               ← IL2CPP type definitions
+│   ├── il2cpp_offsets.h       ← Architecture-specific offsets
+│   ├── main.h                 ← App info + memory macros
+│   ├── game.h                 ← Unity engine structs
+│   ├── libil2cpp.so           ← Native library copy
+│   ├── libil2cpp_elf.txt      ← ELF section/symbol analysis
+│   ├── libil2cpp_hexdump.txt  ← Hex dump with ASCII
+│   ├── libil2cpp_strings.txt  ← Extracted strings with offsets
+│   └── global-metadata.dat    ← Metadata copy
+├── dex/                       ← Extracted DEX files
+├── native/                    ← All .so libraries
+├── memory/                    ← Memory region analysis
+├── hook/                      ← Hook/classloader dump
+└── SUMMARY.txt                ← Dump summary
 ```
 
-### Usage
-```java
-// Default output path (recommended)
-AppDumperService.get().dumpAll(packageName, null);
+## Building
 
-// Custom output path
-AppDumperService.get().dumpAll(packageName, "/custom/path");
-```
+The project builds via GitHub Actions. APKs are uploaded to the [Releases](https://github.com/Opanxxc/BlackBox-Enhanced/releases) page.
 
-## 📲 Download
-
-[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.1.1)
-
-> **Note:** Only universal APK uploaded (works on all architectures)
-
-## 🛠️ Recommended Tools
-
-| Tool | Description | Link |
-|------|-------------|------|
-| **MT Manager** | APK Editor | [mt2.cn](https://www.mt2.cn/) |
-| **NP Manager** | Advanced APK Editor | [npnut.com](https://npnut.com/) |
-| **jadx** | Java Decompiler | [GitHub](https://github.com/skylot/jadx) |
-| **IDA Pro** | Disassembler | [hex-rays.com](https://www.hex-rays.com/ida-pro/) |
-| **radare2** | Reverse Engineering | [rada.re](https://rada.re/) |
-
-## 🏗️ Building
-
-### Prerequisites
-- JDK 21
-- Android SDK 35
-- NDK 27.0.12077973
-
-### Build Commands
+To build locally:
 ```bash
-# Debug build
 ./gradlew assembleDebug
-
-# Release build
-./gradlew assembleRelease
 ```
 
-### Signing
-For consistent signing across builds, set GitHub Secrets:
-- `RELEASE_KEYSTORE` — Base64 encoded keystore file
-- `KEYSTORE_PASSWORD` — Keystore password
-- `KEY_ALIAS` — Key alias
-- `KEY_PASSWORD` — Key password
+## Requirements
 
-To generate and save your keystore:
-```bash
-# Generate keystore
-keytool -genkeypair -v \
-  -keystore release.keystore \
-  -alias blackbox \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000 \
-  -storepass blackbox123 \
-  -keypass blackbox123 \
-  -dname "CN=BlackBox Enhanced, OU=Dev, O=BlackBox"
+- Android 5.0+ (API 21+)
+- The target app must use IL2CPP backend (not Mono) for full dump support
 
-# Encode to base64 for GitHub Secret
-base64 -w 0 release.keystore
-```
+## Known Limitations
 
-## 🙏 Credits
+- Field offsets are approximate - use Il2CppDumper on a PC for exact offsets
+- Cannot dump apps with heavily obfuscated metadata
+- Server-side anti-cheat cannot be bypassed from the client
+- Some integrity checks (SafetyNet device attestation) may still fail on rooted devices
 
-- **Original**: ALEX502 ([NewBlackbox](https://github.com/ALEX5402/NewBlackbox))
-- **Enhanced by**: Panxcz & Freebuff
+## Credits
 
-## 📝 License
+- **Original BlackBox**: [ALEX5402](https://github.com/ALEX5402/NewBlackbox)
+- **Enhanced by**: [Panxcz](https://github.com/Opanxxc) & Freebuff
+- **IL2CPP format reference**: [Il2CppDumper](https://github.com/Perfare/Il2CppDumper)
+- **Version**: 0.1.3
 
-This project is for educational purposes only.
+## License
+
+Based on BlackBox by ALEX5402. See original repository for license details.
