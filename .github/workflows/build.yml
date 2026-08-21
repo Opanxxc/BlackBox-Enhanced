@@ -136,15 +136,21 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: BlackBox-Enhanced-Debug
-        path: "*.apk"
+        path: |
+          app/build/outputs/apk/debug/*.apk
+          BlackBox-Enhanced-v*-debug-*.apk
         retention-days: 90
+        if-no-files-found: warn
         
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
         name: BlackBox-Enhanced-Release
-        path: "BlackBox-Enhanced-v*-release-*.apk"
+        path: |
+          app/build/outputs/apk/release/*.apk
+          BlackBox-Enhanced-v*-release-*.apk
         retention-days: 90
+        if-no-files-found: warn
         
     - name: Create Release (on tag)
       if: startsWith(github.ref, 'refs/tags/')
