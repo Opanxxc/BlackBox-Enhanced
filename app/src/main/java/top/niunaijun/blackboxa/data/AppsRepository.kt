@@ -426,10 +426,41 @@ class AppsRepository {
 
     fun launchApk(packageName: String, userId: Int, launchLiveData: MutableLiveData<Boolean>) {
         try {
+            Log.i(TAG, "=== Launching app: $packageName (user=$userId) ===")
+            
+            // Auto-apply all bypasses before launch
+            try {
+                top.niunaijun.blackbox.core.system.bypass.AdvancedBypassService.get().applyAllBypasses(packageName)
+                Log.d(TAG, "Bypasses applied for $packageName")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to apply bypasses: ${e.message}")
+            }
+            
+            // Auto-dump if enabled
+            try {
+                val dumper = top.niunaijun.blackbox.core.system.dumper.AppDumperService.get()
+                if (dumper.isDumpEnabled && dumper.isIL2CPPApp(packageName)) {
+                    Log.i(TAG, "Auto-dumping IL2CPP for $packageName")
+                    Thread {
+                        try {
+                            val outputDir = top.niunaijun.blackbox.core.system.dumper.AppDumperService.getDefaultDumpDir(packageName)
+                            dumper.dumpAll(packageName, outputDir)
+                            Log.i(TAG, "Dump completed: $outputDir")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Auto-dump failed: ${e.message}")
+                        }
+                    }.start()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Dump check failed: ${e.message}")
+            }
+            
+            // Launch the app
             val result = BlackBoxCore.get().launchApk(packageName, userId)
+            Log.i(TAG, "Launch result for $packageName: $result")
             launchLiveData.postValue(result)
         } catch (e: Exception) {
-            Log.e(TAG, "Error launching APK: ${e.message}")
+            Log.e(TAG, "Error launching APK $packageName: ${e.message}", e)
             launchLiveData.postValue(false)
         }
     }

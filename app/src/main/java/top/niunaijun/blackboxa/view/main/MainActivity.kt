@@ -52,9 +52,6 @@ class MainActivity : LoadingActivity() {
         try {
             super.onCreate(savedInstanceState)
 
-            // Game-like immersive fullscreen
-            FullScreenHelper.enableImmersive(this)
-
             try {
                 BlackBoxCore.get().onBeforeMainActivityOnCreate(this)
             } catch (e: Exception) {
@@ -62,6 +59,10 @@ class MainActivity : LoadingActivity() {
             }
 
             setContentView(viewBinding.root)
+
+            // Game-like immersive fullscreen - AFTER setContentView
+            FullScreenHelper.enableImmersive(this)
+
             initToolbar(viewBinding.toolbarLayout.toolbar, R.string.app_name)
             initViewPager()
             initFab()

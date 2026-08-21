@@ -25,256 +25,315 @@ import top.niunaijun.blackbox.core.system.ISystemService;
 import top.niunaijun.blackbox.utils.Slog;
 
 /**
- * Service for bypassing SafetyNet and Play Integrity checks.
- * Makes rooted or modified devices appear legitimate to apps.
+ * Enhanced Integrity Bypass Service.
+ * Supports SafetyNet, Play Integrity, MeowBox, YuriKey, and custom device integrity.
+ * Spoofs device properties, installer, fingerprint, and attestation.
  */
 public class IntegrityBypassService implements ISystemService {
-    public static final String TAG = "IntegrityBypassService";
+    public static final String TAG = "IntegrityBypass";
     
     private static final IntegrityBypassService sService = new IntegrityBypassService();
     private boolean mBypassEnabled = true;
     private final Map<String, IntegrityConfig> mPackageConfigs = new HashMap<>();
     private final Set<String> mProtectedPackages = new HashSet<>();
     
-    // Common SafetyNet/Play Integrity detection methods
+    // Integrity bypass modes
+    public static final int MODE_SAFETYNET = 0;
+    public static final int MODE_PLAY_INTEGRITY = 1;
+    public static final int MODE_MEOWBOX = 2;
+    public static final int MODE_YURIKEY = 3;
+    public static final int MODE_FULL = 4;
+    
+    private int mBypassMode = MODE_FULL;
+    
+    // Spoofed device properties for MeowBox/YuriKey
+    private String mSpoofedBrand = "samsung";
+    private String mSpoofedModel = "SM-S918B";
+    private String mSpoofedDevice = "s5e8835";
+    private String mSpoofedProduct = "s5e8835xxx";
+    private String mSpoofedFingerprint = "samsung/s5e8835xxx/s5e8835:14/UP1A.231005.007/S918BXXS3AWJ1:user/release-keys";
+    private String mSpoofedBuildId = "UP1A.231005.007";
+    private String mSpoofedDisplay = "S918BXXS3AWJ1";
+    private String mSpoofedIncremental = "S918BXXS3AWJ1";
+    
+    // Common detection packages
     private static final String[] DETECTION_PACKAGES = {
         "com.google.android.gms",
         "com.android.vending",
         "com.google.android.apps.walletnfcrel",
-        "com.google.android.gms.unstable"
+        "com.google.android.gms.unstable",
+        "com.google.android.gms.chimera",
+        "com.google.android.gms.persistent"
     };
     
-    // Build properties that indicate rooted device
+    // Root indicators
     private static final String[] ROOT_INDICATORS = {
         "ro.build.tags=test-keys",
         "ro.build.type=userdebug",
         "ro.secure=0",
         "ro.debuggable=1",
-        "ro.build.selinux=0"
+        "ro.build.selinux=0",
+        "ro.debuggable=2"
+    };
+    
+    // Root files to hide
+    private static final String[] ROOT_FILES = {
+        "/system/xbin/su", "/system/bin/su", "/sbin/su",
+        "/data/local/xbin/su", "/data/local/bin/su",
+        "/su/bin/su", "/system/app/Superuser.apk",
+        "/system/app/SuperSU.apk", "/data/adb/magisk",
+        "/data/adb/ksu", "/data/adb/apatch",
+        "/cache/su", "/system/usr/we-need-root"
+    };
+    
+    // Magisk-related paths
+    private static final String[] MAGISK_PATHS = {
+        "/sbin/.magisk", "/data/adb/magisk",
+        "/data/adb/magisk.db", "/data/adb/modules",
+        "/data/adb/.mrwatchdog"
     };
     
     public static IntegrityBypassService get() {
         return sService;
     }
     
-    /**
-     * Enable or disable integrity bypass
-     * @param enabled true to enable bypass
-     */
     public void setBypassEnabled(boolean enabled) {
         mBypassEnabled = enabled;
-        Slog.d(TAG, "Integrity bypass " + (enabled ? "enabled" : "disabled"));
+        Slog.i(TAG, "Integrity bypass " + (enabled ? "ENABLED" : "DISABLED"));
     }
     
-    /**
-     * Check if integrity bypass is enabled
-     * @return true if bypass is enabled
-     */
     public boolean isBypassEnabled() {
         return mBypassEnabled;
     }
     
-    /**
-     * Add a package to protect from integrity checks
-     * @param packageName Package name
-     */
-    public void addProtectedPackage(String packageName) {
-        mProtectedPackages.add(packageName);
+    public void setBypassMode(int mode) {
+        mBypassMode = mode;
+        String modeName;
+        switch (mode) {
+            case MODE_SAFETYNET: modeName = "SafetyNet"; break;
+            case MODE_PLAY_INTEGRITY: modeName = "Play Integrity"; break;
+            case MODE_MEOWBOX: modeName = "MeowBox"; break;
+            case MODE_YURIKEY: modeName = "YuriKey"; break;
+            case MODE_FULL: modeName = "Full (All)"; break;
+            default: modeName = "Unknown"; break;
+        }
+        Slog.i(TAG, "Bypass mode set to: " + modeName);
+    }
+    
+    public int getBypassMode() {
+        return mBypassMode;
     }
     
     /**
-     * Remove a protected package
-     * @param packageName Package name
+     * Set MeowBox-style spoofing (aggressive device spoof)
      */
+    public void setMeowBoxMode() {
+        mBypassMode = MODE_MEOWBOX;
+        // Use Samsung Galaxy S24 Ultra as target device (known to pass)
+        mSpoofedBrand = "samsung";
+        mSpoofedModel = "SM-S928B";
+        mSpoofedDevice = "e3q";
+        mSpoofedProduct = "e3qxxx";
+        mSpoofedFingerprint = "samsung/e3qxxx/e3q:14/UP1A.231005.007/S928BXXS3AWJ1:user/release-keys";
+        mSpoofedBuildId = "UP1A.231005.007";
+        mSpoofedDisplay = "S928BXXS3AWJ1";
+        mSpoofedIncremental = "S928BXXS3AWJ1";
+        Slog.i(TAG, "MeowBox mode activated - Samsung Galaxy S24 Ultra spoofed");
+    }
+    
+    /**
+     * Set YuriKey-style spoofing (stealth mode)
+     */
+    public void setYuriKeyMode() {
+        mBypassMode = MODE_YURIKEY;
+        // Use Pixel 8 Pro as target device (AOSP device, passes all checks)
+        mSpoofedBrand = "google";
+        mSpoofedModel = "Pixel 8 Pro";
+        mSpoofedDevice = "husky";
+        mSpoofedProduct = "husky";
+        mSpoofedFingerprint = "google/husky/husky:14/UP1A.231005.007/10754064:user/release-keys";
+        mSpoofedBuildId = "UP1A.231005.007";
+        mSpoofedDisplay = "10754064";
+        mSpoofedIncremental = "10754064";
+        Slog.i(TAG, "YuriKey mode activated - Google Pixel 8 Pro spoofed");
+    }
+    
+    /**
+     * Set custom device spoofing
+     */
+    public void setCustomSpoof(String brand, String model, String device, String fingerprint) {
+        mSpoofedBrand = brand;
+        mSpoofedModel = model;
+        mSpoofedDevice = device;
+        mSpoofedFingerprint = fingerprint;
+        Slog.i(TAG, "Custom spoof: " + brand + " " + model);
+    }
+    
+    public void addProtectedPackage(String packageName) {
+        mProtectedPackages.add(packageName);
+        Slog.d(TAG, "Protected package added: " + packageName);
+    }
+    
     public void removeProtectedPackage(String packageName) {
         mProtectedPackages.remove(packageName);
     }
     
-    /**
-     * Set integrity configuration for a package
-     * @param packageName Package name
-     * @param config Integrity configuration
-     */
     public void setIntegrityConfig(String packageName, IntegrityConfig config) {
         mPackageConfigs.put(packageName, config);
     }
     
-    /**
-     * Get integrity configuration for a package
-     * @param packageName Package name
-     * @return Integrity configuration
-     */
     public IntegrityConfig getIntegrityConfig(String packageName) {
         return mPackageConfigs.get(packageName);
     }
     
-    /**
-     * Check if a package should be protected
-     * @param packageName Package name
-     * @return true if package should be protected
-     */
     public boolean isProtectedPackage(String packageName) {
-        if (!mBypassEnabled) {
-            return false;
+        if (!mBypassEnabled) return false;
+        for (String pkg : DETECTION_PACKAGES) {
+            if (packageName.equals(pkg)) return true;
         }
-        
-        // Check against common detection packages
-        for (String detectionPackage : DETECTION_PACKAGES) {
-            if (packageName.equals(detectionPackage)) {
-                return true;
-            }
-        }
-        
-        // Check against custom protected packages
         return mProtectedPackages.contains(packageName);
     }
     
-    /**
-     * Get modified build properties that pass SafetyNet
-     * @return Modified build properties
-     */
-    public Map<String, String> getModifiedBuildProperties() {
-        Map<String, String> properties = new HashMap<>();
-        
-        // Add standard build properties
-        properties.put("ro.build.display.id", Build.DISPLAY);
-        properties.put("ro.build.version.sdk", String.valueOf(Build.VERSION.SDK_INT));
-        properties.put("ro.build.version.release", Build.VERSION.RELEASE);
-        properties.put("ro.product.model", Build.MODEL);
-        properties.put("ro.product.brand", Build.BRAND);
-        properties.put("ro.product.manufacturer", Build.MANUFACTURER);
-        
-        // Ensure these don't indicate root
-        properties.put("ro.build.tags", "release-keys");
-        properties.put("ro.build.type", "user");
-        properties.put("ro.secure", "1");
-        properties.put("ro.debuggable", "0");
-        properties.put("ro.build.selinux", "1");
-        
-        // Add additional properties for SafetyNet
-        properties.put("ro.build.flavor", "user");
-        properties.put("ro.build.description", Build.DISPLAY);
-        properties.put("ro.build.version.codename", Build.VERSION.CODENAME);
-        
-        return properties;
-    }
+    // ==================== SAFETYNET ====================
     
     /**
-     * Check if device passes SafetyNet check
-     * @return true if device appears safe
+     * Get modified build properties that pass SafetyNet/Play Integrity
      */
-    public boolean passesSafetyNet() {
-        if (!mBypassEnabled) {
-            return false;
-        }
+    public Map<String, String> getModifiedBuildProperties() {
+        Map<String, String> props = new HashMap<>();
         
-        // Check build properties
+        // Base device properties
+        props.put("ro.build.display.id", mSpoofedDisplay);
+        props.put("ro.build.version.sdk", String.valueOf(Build.VERSION.SDK_INT));
+        props.put("ro.build.version.release", Build.VERSION.RELEASE);
+        props.put("ro.build.version.codename", "REL");
+        props.put("ro.build.version.security_patch", "2024-08-01");
+        
+        // Spoofed device identity
+        props.put("ro.product.model", mSpoofedModel);
+        props.put("ro.product.brand", mSpoofedBrand);
+        props.put("ro.product.device", mSpoofedDevice);
+        props.put("ro.product.name", mSpoofedProduct);
+        props.put("ro.product.manufacturer", mSpoofedBrand);
+        props.put("ro.product.board", mSpoofedDevice);
+        
+        // SafetyNet-critical properties
+        props.put("ro.build.tags", "release-keys");
+        props.put("ro.build.type", "user");
+        props.put("ro.secure", "1");
+        props.put("ro.debuggable", "0");
+        props.put("ro.build.selinux", "1");
+        props.put("ro.build.flavor", mSpoofedProduct + "-user");
+        props.put("ro.build.description", mSpoofedProduct + ":14/" + mSpoofedBuildId + "/" + mSpoofedIncremental + ":user/release-keys");
+        props.put("ro.build.fingerprint", mSpoofedFingerprint);
+        props.put("ro.build.id", mSpoofedBuildId);
+        props.put("ro.build.incremental", mSpoofedIncremental);
+        
+        // Kernel/ABI properties
+        props.put("ro.product.cpu.abi", Build.CPU_ABI);
+        props.put("ro.product.cpu.abilist", Build.SUPPORTED_ABIS[0]);
+        
+        // Additional integrity bypass
+        props.put("ro.boot.verifiedbootstate", "green");
+        props.put("ro.boot.vbmeta.device_state", "locked");
+        props.put("ro.build.weekly", "false");
+        props.put("ro.build.version.preview_sdk", "0");
+        props.put("ro.build.version.all_preview_sdk", "0");
+        props.put("ro.build.characteristics", "default");
+        props.put("ro.com.google.clientidbase", "android-google");
+        props.put("ro.com.google.gmsversion", "14.3.15");
+        
+        Slog.d(TAG, "Build properties spoofed for: " + mSpoofedBrand + " " + mSpoofedModel);
+        return props;
+    }
+    
+    public boolean passesSafetyNet() {
+        if (!mBypassEnabled) return false;
         for (String indicator : ROOT_INDICATORS) {
             String[] parts = indicator.split("=");
             if (parts.length == 2) {
                 String prop = getSystemProperty(parts[0]);
                 if (prop != null && prop.equals(parts[1])) {
+                    Slog.w(TAG, "Root indicator found: " + indicator);
                     return false;
                 }
             }
         }
-        
-        // Check for root files
-        String[] rootFiles = {
-            "/system/xbin/su",
-            "/system/bin/su",
-            "/sbin/su",
-            "/data/local/xbin/su",
-            "/data/local/bin/su"
-        };
-        
-        for (String rootFile : rootFiles) {
+        for (String rootFile : ROOT_FILES) {
             if (new File(rootFile).exists()) {
+                Slog.w(TAG, "Root file found: " + rootFile);
                 return false;
             }
         }
-        
         return true;
     }
     
-    /**
-     * Check if device passes Play Integrity check
-     * @return true if device appears legitimate
-     */
     public boolean passesPlayIntegrity() {
-        if (!mBypassEnabled) {
-            return false;
+        if (!mBypassEnabled) return false;
+        // Play Integrity uses device attestation - we need strong spoofing
+        if (mBypassMode == MODE_MEOWBOX || mBypassMode == MODE_YURIKEY || mBypassMode == MODE_FULL) {
+            return passesSafetyNet() && hasValidFingerprint();
         }
-        
-        // Similar to SafetyNet but with additional checks
         return passesSafetyNet();
     }
     
+    private boolean hasValidFingerprint() {
+        return mSpoofedFingerprint != null && mSpoofedFingerprint.contains(":user/release-keys");
+    }
+    
+    // ==================== HIDE ROOT ====================
+    
     /**
-     * Get modified package info that passes integrity checks
-     * @param packageName Package name
-     * @return Modified package info
+     * Check if a root-related path should be hidden
      */
-    public PackageInfo getModifiedPackageInfo(String packageName) {
-        try {
-            PackageInfo packageInfo = BlackBoxCore.getPackageManager().getPackageInfo(packageName, 0);
-            
-            // Modify package info to appear legitimate
-            // This is a simplified version - in production, you'd need to handle this more carefully
-            
-            return packageInfo;
-        } catch (PackageManager.NameNotFoundException e) {
-            Slog.e(TAG, "Package not found: " + packageName);
-            return null;
+    public boolean shouldHidePath(String path) {
+        if (!mBypassEnabled) return false;
+        for (String rootFile : ROOT_FILES) {
+            if (path.contains(rootFile)) return true;
         }
+        for (String magiskPath : MAGISK_PATHS) {
+            if (path.contains(magiskPath)) return true;
+        }
+        // Also hide /proc/self/maps root indicators
+        if (path.contains("/proc/") && (path.contains("magisk") || path.contains("ksu") || path.contains("supersu"))) {
+            return true;
+        }
+        return false;
     }
     
     /**
-     * Get modified installer package name
-     * @param packageName Package name
-     * @return Installer package name
+     * Get modified /proc/self/maps content (hides root traces)
      */
+    public String filterMapsContent(String mapsContent) {
+        if (!mBypassEnabled || mapsContent == null) return mapsContent;
+        StringBuilder filtered = new StringBuilder();
+        String[] lines = mapsContent.split("\n");
+        for (String line : lines) {
+            if (!shouldHidePath(line)) {
+                filtered.append(line).append("\n");
+            }
+        }
+        return filtered.toString();
+    }
+    
+    // ==================== INSTALLER SPOOF ====================
+    
     public String getModifiedInstallerPackageName(String packageName) {
-        // Return legitimate installer packages
-        String[] legitimateInstallers = {
-            "com.android.vending", // Google Play Store
-            "com.android.packageinstaller",
-            "com.google.android.packageinstaller"
-        };
-        
-        return legitimateInstallers[0]; // Default to Google Play Store
+        // Always return Google Play Store as installer
+        return "com.android.vending";
     }
     
-    /**
-     * Check if package is from legitimate source
-     * @param packageName Package name
-     * @return true if package appears legitimate
-     */
     public boolean isLegitimateSource(String packageName) {
-        try {
-            String installer = BlackBoxCore.getPackageManager().getInstallerPackageName(packageName);
-            
-            // Check if installer is legitimate
-            return installer != null && (
-                installer.equals("com.android.vending") ||
-                installer.equals("com.android.packageinstaller") ||
-                installer.equals("com.google.android.packageinstaller")
-            );
-        } catch (Exception e) {
-            return false;
-        }
+        // Always appear as Play Store install
+        return true;
     }
     
-    /**
-     * Get modified signature hash
-     * @param packageName Package name
-     * @return Modified signature hash
-     */
+    // ==================== SIGNATURE ====================
+    
     public String getModifiedSignatureHash(String packageName) {
         try {
             PackageInfo packageInfo = BlackBoxCore.getPackageManager().getPackageInfo(
                 packageName, PackageManager.GET_SIGNATURES);
-            
             if (packageInfo.signatures != null && packageInfo.signatures.length > 0) {
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
                 byte[] signatureBytes = packageInfo.signatures[0].toByteArray();
@@ -284,31 +343,11 @@ public class IntegrityBypassService implements ISystemService {
         } catch (Exception e) {
             Slog.e(TAG, "Failed to get signature hash: " + e.getMessage());
         }
-        
         return null;
     }
     
-    /**
-     * Get system property value
-     * @param prop Property name
-     * @return Property value or null
-     */
-    private String getSystemProperty(String prop) {
-        try {
-            Process process = Runtime.getRuntime().exec("getprop " + prop);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String value = reader.readLine();
-            reader.close();
-            return value;
-        } catch (IOException e) {
-            return null;
-        }
-    }
+    // ==================== DEVICE INFO ====================
     
-    /**
-     * Check if device is emulator
-     * @return true if device is emulator
-     */
     public boolean isEmulator() {
         return Build.FINGERPRINT.startsWith("generic")
             || Build.FINGERPRINT.startsWith("unknown")
@@ -322,28 +361,22 @@ public class IntegrityBypassService implements ISystemService {
             || Build.HARDWARE.contains("ranchu");
     }
     
-    /**
-     * Get modified device fingerprint
-     * @return Modified fingerprint
-     */
     public String getModifiedFingerprint() {
-        // Return a legitimate-looking fingerprint
-        return Build.BRAND + "/" + Build.PRODUCT + "/" + Build.DEVICE + ":" +
-               Build.VERSION.RELEASE + "/" + Build.ID + "/" + Build.DISPLAY + ":user/release-keys";
+        return mSpoofedFingerprint;
     }
     
-    /**
-     * Check if SafetyNet bypass should be activated
-     * @return true if bypass should be activated
-     */
+    public PackageInfo getModifiedPackageInfo(String packageName) {
+        try {
+            return BlackBoxCore.getPackageManager().getPackageInfo(packageName, 0);
+        } catch (PackageManager.NameNotFoundException e) {
+            return null;
+        }
+    }
+    
     public boolean shouldActivateBypass() {
         return mBypassEnabled;
     }
     
-    /**
-     * Get list of packages that need bypass
-     * @return Set of package names
-     */
     public Set<String> getPackagesNeedingBypass() {
         Set<String> packages = new HashSet<>(mProtectedPackages);
         for (String pkg : DETECTION_PACKAGES) {
@@ -352,29 +385,41 @@ public class IntegrityBypassService implements ISystemService {
         return packages;
     }
     
-    @Override
-    public void systemReady() {
-        Slog.d(TAG, "IntegrityBypassService initialized");
+    private String getSystemProperty(String prop) {
+        try {
+            Process process = Runtime.getRuntime().exec("getprop " + prop);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String value = reader.readLine();
+            reader.close();
+            process.destroy();
+            return value;
+        } catch (Exception e) {
+            return null;
+        }
     }
     
-    /**
-     * Integrity configuration class
-     */
+    // ==================== SYSTEM SERVICE ====================
+    
+    @Override
+    public void systemReady() {
+        Slog.i(TAG, "IntegrityBypassService v0.0.10 initialized - Mode: " + mBypassMode);
+        Slog.i(TAG, "  MeowBox support: YES");
+        Slog.i(TAG, "  YuriKey support: YES");
+        Slog.i(TAG, "  Play Integrity spoof: " + mSpoofedBrand + " " + mSpoofedModel);
+    }
+    
+    // ==================== DATA CLASSES ====================
+    
     public static class IntegrityConfig {
-        public boolean bypassSafetyNet;
-        public boolean bypassPlayIntegrity;
-        public boolean hideRoot;
-        public boolean hideEmulator;
-        public boolean spoofFingerprint;
-        public String customFingerprint;
-        
-        public IntegrityConfig() {
-            this.bypassSafetyNet = true;
-            this.bypassPlayIntegrity = true;
-            this.hideRoot = true;
-            this.hideEmulator = false;
-            this.spoofFingerprint = false;
-            this.customFingerprint = null;
-        }
+        public boolean bypassSafetyNet = true;
+        public boolean bypassPlayIntegrity = true;
+        public boolean hideRoot = true;
+        public boolean hideEmulator = false;
+        public boolean spoofFingerprint = true;
+        public boolean spoofInstaller = true;
+        public boolean filterProcMaps = true;
+        public String customFingerprint = null;
+        public String customDevice = null;
+        public int bypassMode = MODE_FULL;
     }
 }

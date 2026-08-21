@@ -16,8 +16,13 @@ import top.niunaijun.blackbox.core.system.bypass.HookDetectionBypassService
 import top.niunaijun.blackbox.core.system.shell.ShellScriptService
 import top.niunaijun.blackbox.core.system.location.EnhancedLocationService
 import top.niunaijun.blackbox.core.system.dumper.AppDumperService
+import android.util.Log
 
 class SettingFragment : PreferenceFragmentCompat() {
+
+    companion object {
+        private const val TAG = "SettingFragment"
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.setting, rootKey)
@@ -48,44 +53,60 @@ class SettingFragment : PreferenceFragmentCompat() {
     // ==================== SECURITY SETTINGS ====================
     
     private fun initSecuritySettings() {
+        Log.d(TAG, "Initializing security settings...")
+
         // Root Hide
         initSwitch("root_hide", "Hide Root", "Hide root status from apps") { enabled ->
+            Log.i(TAG, "Hide Root: ${if (enabled) "ON" else "OFF"}")
             HideRootService.get().setHideRootEnabled(enabled)
             AppManager.mBlackBoxLoader.invalidHideRoot(enabled)
         }
 
         // VPN Hide
         initSwitch("vpn_hide", "Hide VPN", "Hide VPN connections from apps") { enabled ->
+            Log.i(TAG, "Hide VPN: ${if (enabled) "ON" else "OFF"}")
             HideVpnService.get().setHideVpnEnabled(enabled)
         }
 
         // Integrity Bypass
         initSwitch("integrity_bypass", "SafetyNet/Play Integrity Bypass", "Bypass SafetyNet and Play Integrity") { enabled ->
+            Log.i(TAG, "Integrity Bypass: ${if (enabled) "ON" else "OFF"}")
             IntegrityBypassService.get().setBypassEnabled(enabled)
         }
 
         // Hook Detection Bypass
         initSwitch("hook_bypass", "Hook Detection Bypass", "Bypass Frida, Xposed, Substrate detection") { enabled ->
+            Log.i(TAG, "Hook Bypass: ${if (enabled) "ON" else "OFF"}")
             HookDetectionBypassService.get().setBypassEnabled(enabled)
         }
 
         // Frida Hide
         initSwitch("frida_hide", "Hide Frida", "Hide Frida server from detection") { enabled ->
+            Log.i(TAG, "Frida Hide: ${if (enabled) "ON" else "OFF"}")
             if (enabled) {
                 HookDetectionBypassService.get().addProtectedPackage("com.frida.server")
+                HookDetectionBypassService.get().addProtectedPackage("re.frida.server")
             } else {
                 HookDetectionBypassService.get().removeProtectedPackage("com.frida.server")
+                HookDetectionBypassService.get().removeProtectedPackage("re.frida.server")
             }
         }
 
         // Xposed Hide
         initSwitch("xposed_hide", "Hide Xposed", "Hide Xposed framework from detection") { enabled ->
+            Log.i(TAG, "Xposed Hide: ${if (enabled) "ON" else "OFF"}")
             if (enabled) {
                 HookDetectionBypassService.get().addProtectedPackage("de.robv.android.xposed.installer")
+                HookDetectionBypassService.get().addProtectedPackage("org.meowcat.edxposed.manager")
+                HookDetectionBypassService.get().addProtectedPackage("io.github.lsposed.manager")
             } else {
                 HookDetectionBypassService.get().removeProtectedPackage("de.robv.android.xposed.installer")
+                HookDetectionBypassService.get().removeProtectedPackage("org.meowcat.edxposed.manager")
+                HookDetectionBypassService.get().removeProtectedPackage("io.github.lsposed.manager")
             }
         }
+
+        Log.d(TAG, "Security settings initialized")
     }
 
     // ==================== ADVANCED SETTINGS ====================
