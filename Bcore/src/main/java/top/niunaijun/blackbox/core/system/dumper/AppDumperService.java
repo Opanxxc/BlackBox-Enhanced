@@ -100,7 +100,24 @@ public class AppDumperService implements ISystemService {
                 Slog.w(TAG, "  global-metadata.dat NOT FOUND anywhere!");
             }
             
-            // 3. Generate all dump files
+            // 3. Try native runtime dump (reads from live memory - REAL addresses!)
+            if (NativeDumper.isAvailable()) {
+                Slog.i(TAG, "  Attempting native runtime dump...");
+                try {
+                    boolean nativeOk = NativeDumper.fullDump(pkg, outputDir);
+                    if (nativeOk) {
+                        Slog.i(TAG, "  Native dump started - will dump from live memory");
+                    } else {
+                        Slog.w(TAG, "  Native dump not started (app may not have IL2CPP loaded yet)");
+                    }
+                } catch (Exception e) {
+                    Slog.w(TAG, "  Native dump failed: " + e.getMessage());
+                }
+            } else {
+                Slog.w(TAG, "  Native dumper not available");
+            }
+            
+            // 4. Generate all dump files (Java-side)
             generateDumpCs(pkg, out, ai, pi);
             generateIl2CppH(pkg, out, ai);
             generateMainH(pkg, out, pi, ai);
