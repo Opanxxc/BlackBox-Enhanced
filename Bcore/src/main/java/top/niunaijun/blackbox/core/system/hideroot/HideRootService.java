@@ -49,7 +49,23 @@ public class HideRootService implements ISystemService {
         "/system/usr/we-need-root",
         "/cache/su",
         "/data/su",
-        "/dev/su"
+        "/dev/su",
+        // Magisk paths
+        "/sbin/.magisk",
+        "/data/adb/magisk",
+        "/data/adb/magisk.db",
+        "/data/adb/modules",
+        "/cache/.disable",
+        "/data/adb/service.d",
+        "/data/adb/post-fs-data.d",
+        "/system/etc/init.d",
+        // Kernel-level root indicators
+        "/proc/sys/kernel/modules_disabled",
+        "/proc/sysrq-trigger",
+        "/dev/socket/su",
+        "/dev/su0",
+        "/dev/supersu",
+        "/dev/magisk"
     };
     
     // Common root packages
@@ -68,7 +84,18 @@ public class HideRootService implements ISystemService {
         "com.devadvance.rootcloak",
         "com.saurik.substrate",
         "com.amphoras.hidemyroot",
-        "com.amphoras.rootcloak"
+        "com.amphoras.rootcloak",
+        // Kernel-level root apps
+        "com.kingoroot.root",
+        "com.mediaapps.root",
+        "com.jumobile.multiroot",
+        "com.noshufou.android.su.elite",
+        "eu.chainfire.supersu.pro",
+        // Frida/Xposed detection
+        "de.robv.android.xposed.installer",
+        "com.devadvance.rootcloakplus",
+        "com.zphr.fridahider",
+        "com.hazard.xposedlanger"
     };
     
     // Common root binary names
@@ -80,7 +107,29 @@ public class HideRootService implements ISystemService {
         "magisk",
         "magiskinit",
         "magiskdaemon",
-        "magiskhide"
+        "magiskhide",
+        "ksu",
+        "ksud",
+        "apatch",
+        "ksuinit"
+    };
+    
+    // Kernel-level root indicators
+    private static final String[] KERNEL_ROOT_INDICATORS = {
+        "/proc/sys/kernel/modules_disabled",
+        "/proc/sysrq-trigger",
+        "/proc/sys/kernel/suid_dumpable",
+        "/proc/sys/vm/mmap_min_addr",
+        "/proc/kallsyms",
+        "/proc/version",
+        "/proc/config.gz"
+    };
+    
+    // SELinux status indicators
+    private static final String[] SELINUX_INDICATORS = {
+        "/sys/fs/selinux/enforce",
+        "/sys/fs/selinux/policy",
+        "/sys/fs/selinux/context"
     };
     
     public static HideRootService get() {
@@ -339,6 +388,186 @@ public class HideRootService implements ISystemService {
         }
         packages.addAll(mRootPackages);
         return packages;
+    }
+    
+    /**
+     * Check if a kernel-level root indicator should be hidden
+     * @param path Kernel path to check
+     * @return true if the path should be hidden
+     */
+    public boolean shouldHideKernelPath(String path) {
+        if (!mHideRootEnabled) {
+            return false;
+        }
+        
+        for (String kernelPath : KERNEL_ROOT_INDICATORS) {
+            if (path.equals(kernelPath)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if SELinux is in permissive mode (root indicator)
+     * @return true if SELinux appears to be enforcing
+     */
+    public boolean isSELinuxEnforcing() {
+        try {
+            File selinuxFile = new File("/sys/fs/selinux/enforce");
+            if (selinuxFile.exists()) {
+                BufferedReader reader = new BufferedReader(new FileReader(selinuxFile));
+                String value = reader.readLine();
+                reader.close();
+                return "1".equals(value.trim());
+            }
+        } catch (IOException e) {
+            // If we can't read, assume enforcing
+        }
+        return true;
+    }
+    
+    /**
+     * Get modified SELinux status
+     * @return SELinux status string
+     */
+    public String getModifiedSELinuxStatus() {
+        return "enforcing";
+    }
+    
+    /**
+     * Check if Magisk is installed
+     * @return true if Magisk is detected
+     */
+    public boolean isMagiskInstalled() {
+        // Check common Magisk paths
+        String[] magiskPaths = {
+            "/sbin/.magisk",
+            "/data/adb/magisk",
+            "/data/adb/magisk.db",
+            "/data/adb/modules"
+        };
+        
+        for (String path : magiskPaths) {
+            if (new File(path).exists()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get modified Magisk database values
+     * @return Modified database values
+     */
+    public java.util.Map<String, String> getModifiedMagiskDatabase() {
+        java.util.Map<String, String> values = new java.util.HashMap<>();
+        values.put("policy", "0");
+        values.put("sulog", "0");
+        values.put("version", "0");
+        values.put("hide", "0");
+        return values;
+    }
+    
+    /**
+     * Check if device has kernel-level root
+     * @return true if kernel root is detected
+     */
+    public boolean hasKernelRoot() {
+        // Check kernel modules
+        try {
+            File modulesFile = new File("/proc/modules");
+            if (modulesFile.exists()) {
+                BufferedReader reader = new BufferedReader(new FileReader(modulesFile));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("su") || line.contains("root") || line.contains("magisk")) {
+                        reader.close();
+                        return true;
+                    }
+                }
+                reader.close();
+            }
+        } catch (IOException e) {
+            // If we can't read, assume no kernel root
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get modified kernel parameters
+     * @return Modified kernel parameters
+     */
+    public java.util.Map<String, String> getModifiedKernelParameters() {
+        java.util.Map<String, String> params = new java.util.HashMap<>();
+        params.put("modules_disabled", "1");
+        params.put("suid_dumpable", "0");
+        params.put("mmap_min_addr", "65536");
+        return params;
+    }
+    
+    /**
+     * Check if /proc should be modified
+     * @param procPath /proc path to check
+     * @return true if the path should be modified
+     */
+    public boolean shouldModifyProc(String procPath) {
+        if (!mHideRootEnabled) {
+            return false;
+        }
+        
+        // Check if it's a root-related /proc path
+        return procPath.contains("/proc/mounts") ||
+               procPath.contains("/proc/self/mounts") ||
+               procPath.contains("/proc/filesystems") ||
+               procPath.contains("/proc/partitions");
+    }
+    
+    /**
+     * Get modified /proc/mounts content
+     * @return Modified mounts content
+     */
+    public String getModifiedMountsContent() {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("/proc/mounts"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Hide root-related mounts
+                if (!line.contains("su") && !line.contains("magisk") && !line.contains("root")) {
+                    sb.append(line).append("\n");
+                }
+            }
+            reader.close();
+            return sb.toString();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+    
+    /**
+     * Get modified /proc/filesystems content
+     * @return Modified filesystems content
+     */
+    public String getModifiedFilesystemsContent() {
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("/proc/filesystems"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Hide root-related filesystems
+                if (!line.contains("su") && !line.contains("root")) {
+                    sb.append(line).append("\n");
+                }
+            }
+            reader.close();
+            return sb.toString();
+        } catch (IOException e) {
+            return "";
+        }
     }
     
     @Override
