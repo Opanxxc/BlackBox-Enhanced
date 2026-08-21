@@ -1,4 +1,4 @@
-# BlackBox Enhanced v0.0.8
+# BlackBox Enhanced v0.0.10
 
 <p align="center">
   <img src="assets/usage.gif" alt="BlackBox Banner" width="100%"/>
@@ -8,9 +8,18 @@
 
 BlackBox Enhanced is a powerful virtual engine with advanced app analysis, security bypass, and dumping capabilities.
 
-## 🚀 Features
+## 🚀 What's New in v0.0.10
 
-### 📱 App Dumper (NEW!)
+- ✅ **Default dump output**: `/storage/emulated/0/Download/black/dump/(packagename)`
+- ✅ **Persistent signing key** — install-over without losing game data!
+- ✅ **Fixed GMS Manager** — no more white screen
+- ✅ **Fixed MT Manager** — no more crashes
+- ✅ **Immersive fullscreen** — game-like display
+- ✅ **Android 5.0 - 17** support
+
+## 📱 Features
+
+### 📱 App Dumper
 | Feature | Description |
 |---------|-------------|
 | **IL2CPP Dump** | dump.cs, il2cpp.h, class/method enumeration |
@@ -18,7 +27,7 @@ BlackBox Enhanced is a powerful virtual engine with advanced app analysis, secur
 | **DEX Extraction** | APK decompilation support |
 | **Native SO Dump** | All .so libraries + analysis |
 | **String Dump** | Extract all strings from app |
-| **Custom Output** | Configurable dump options |
+| **Custom Output** | Default: `/storage/emulated/0/Download/black/dump/(packagename)` |
 
 ### 🔐 Security Bypass
 | Feature | Description |
@@ -37,41 +46,35 @@ BlackBox Enhanced is a powerful virtual engine with advanced app analysis, secur
 | **Fake Location** | GPS simulation |
 | **Device Spoofing** | Modify device info |
 
-## 📱 App Dumper Usage
+## 📱 App Dumper Output Path
 
-### Dump IL2CPP
-```java
-// dump.cs, il2cpp.h, main.h, game.h
-AppDumperService.get().dumpIL2CPP(packageName, outputDir);
+All dump files are saved to:
+```
+/storage/emulated/0/Download/black/dump/(packagename)/
+├── il2cpp/          # IL2CPP dump files
+│   ├── dump.cs
+│   ├── il2cpp.h
+│   ├── main.h
+│   ├── game.h
+│   └── ...
+├── dex/             # DEX extraction
+├── native/          # Native SO libraries
+├── unity/           # Unity-specific files
+└── SUMMARY.txt      # Dump summary
 ```
 
-### Dump DEX
+### Usage
 ```java
-// Extract APK for decompilation
-AppDumperService.get().dumpDEX(packageName, outputDir);
-```
+// Default output path (recommended)
+AppDumperService.get().dumpAll(packageName, null);
 
-### Dump Native SO
-```java
-// All .so libraries with analysis
-AppDumperService.get().dumpNativeLibs(packageName, outputDir);
-```
-
-### Dump Unity
-```java
-// Unity-specific files
-AppDumperService.get().dumpUnity(packageName, outputDir);
-```
-
-### Full Dump
-```java
-// Everything at once
-AppDumperService.get().dumpAll(packageName, outputDir);
+// Custom output path
+AppDumperService.get().dumpAll(packageName, "/custom/path");
 ```
 
 ## 📲 Download
 
-[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.0.8)
+[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.0.10)
 
 > **Note:** Only universal APK uploaded (works on all architectures)
 
@@ -79,93 +82,57 @@ AppDumperService.get().dumpAll(packageName, outputDir);
 
 | Tool | Description | Link |
 |------|-------------|------|
-| **MT Manager** | APK editor, DEX editor, signing | [mt2.cn](https://www.mt2.cn/) |
-| **NP Manager** | Advanced APK editor, reverse engineering | [npnut.com](https://npnut.com/) |
-| **Apktool** | APK reverse engineering | [GitHub](https://github.com/iBotPeaches/Apktool) |
-| **jadx** | DEX to Java decompiler | [GitHub](https://github.com/skylot/jadx) |
-| **dex2jar** | DEX to JAR converter | [GitHub](https://github.com/pxb1988/dex2jar) |
+| **MT Manager** | APK Editor | [mt2.cn](https://www.mt2.cn/) |
+| **NP Manager** | Advanced APK Editor | [npnut.com](https://npnut.com/) |
+| **jadx** | Java Decompiler | [GitHub](https://github.com/skylot/jadx) |
+| **IDA Pro** | Disassembler | [hex-rays.com](https://www.hex-rays.com/ida-pro/) |
+| **radare2** | Reverse Engineering | [rada.re](https://rada.re/) |
 
-### Download Managers
+## 🏗️ Building
 
+### Prerequisites
+- JDK 21
+- Android SDK 35
+- NDK 27.0.12077973
+
+### Build Commands
 ```bash
-# Run the download script
-./tools/download_managers.sh
-
-# Or manually download MT Manager / NP Manager
-# and place them in tools/managers/
-```
-
-> **Note:** MT Manager and NP Manager are not open source.
-> Download from their official sites and include manually.
-
-## 🛠️ Build
-
-```bash
-git clone https://github.com/Opanxxc/BlackBox-Enhanced.git
-cd BlackBox-Enhanced
+# Debug build
 ./gradlew assembleDebug
+
+# Release build
+./gradlew assembleRelease
 ```
 
-## 📚 API Reference
+### Signing
+For consistent signing across builds, set GitHub Secrets:
+- `RELEASE_KEYSTORE` — Base64 encoded keystore file
+- `KEYSTORE_PASSWORD` — Keystore password
+- `KEY_ALIAS` — Key alias
+- `KEY_PASSWORD` — Key password
 
-### App Dumper
-```java
-// Check app type
-boolean isIL2CPP = AppDumperService.get().isIL2CPPApp(pkg);
-boolean isUnity = AppDumperService.get().isUnityApp(pkg);
+To generate and save your keystore:
+```bash
+# Generate keystore
+keytool -genkeypair -v \
+  -keystore release.keystore \
+  -alias blackbox \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -storepass blackbox123 \
+  -keypass blackbox123 \
+  -dname "CN=BlackBox Enhanced, OU=Dev, O=BlackBox"
 
-// Get dump info
-AppDumpInfo info = AppDumperService.get().getAppDumpInfo(pkg);
-
-// Get dump result
-DumpResult result = AppDumperService.get().getDumpResult(pkg);
+# Encode to base64 for GitHub Secret
+base64 -w 0 release.keystore
 ```
-
-### Root Hiding
-```java
-// Enable hiding
-HideRootService.get().setHideRootEnabled(true);
-
-// Check kernel root
-boolean hasRoot = HideRootService.get().hasKernelRoot();
-
-// Get modified /proc
-String mounts = HideRootService.get().getModifiedMountsContent();
-```
-
-### Hook Bypass
-```java
-// Check detection
-boolean hasFrida = HookDetectionBypassService.get().isFridaInstalled();
-boolean hasXposed = HookDetectionBypassService.get().isXposedInstalled();
-
-// Get modified maps
-String maps = HookDetectionBypassService.get().getModifiedMapsContent();
-```
-
-## 🔧 Requirements
-
-- Android 5.0 - 17 (API 21-35)
-- 2GB RAM minimum
-- ARM64/ARMv7/x86
 
 ## 🙏 Credits
 
-- **Original**: ALEX502
+- **Original**: ALEX502 ([NewBlackbox](https://github.com/ALEX5402/NewBlackbox))
 - **Enhanced by**: Panxcz & Freebuff
-- **Framework**: VirtualApp, VirtualAPK
-- **Hooks**: Dobby, xDL
 
-## 📄 License
+## 📝 License
 
-Apache License 2.0
-
-## 🔗 Links
-
-- [GitHub](https://github.com/Opanxxc/BlackBox-Enhanced)
-- [Releases](https://github.com/Opanxxc/BlackBox-Enhanced/releases)
-- [Issues](https://github.com/Opanxxc/BlackBox-Enhanced/issues)
-
----
-
-**Made with ❤️ by Panxcz & Freebuff**
+This project is for educational purposes only.

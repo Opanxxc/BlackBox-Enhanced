@@ -26,6 +26,16 @@
 -keep class android.** {*; }
 -keep class com.android.** {*; }
 
+# Keep enhanced services
+-keep class top.niunaijun.blackbox.core.system.dumper.** {*; }
+-keep class top.niunaijun.blackbox.core.system.shell.** {*; }
+-keep class top.niunaijun.blackbox.core.system.auth.** {*; }
+-keep class top.niunaijun.blackbox.core.system.hideroot.** {*; }
+-keep class top.niunaijun.blackbox.core.system.hidevpn.** {*; }
+-keep class top.niunaijun.blackbox.core.system.integrity.** {*; }
+-keep class top.niunaijun.blackbox.core.system.bypass.** {*; }
+-keep class top.niunaijun.blackbox.core.system.location.** {*; }
+
 -keep class top.niunaijun.blackreflection.** {*; }
 -keep @top.niunaijun.blackreflection.annotation.BClass class * {*;}
 -keep @top.niunaijun.blackreflection.annotation.BClassName class * {*;}

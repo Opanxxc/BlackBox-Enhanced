@@ -21,10 +21,37 @@
 #-renamesourcefileattribute SourceFile
 
 -keep class top.niunaijun.blackbox.** {*; }
+-keep class top.niunaijun.blackboxa.** {*; }
 -keep class top.niunaijun.jnihook.** {*; }
 -keep class mirror.** {*; }
 -keep class android.** {*; }
 -keep class com.android.** {*; }
+
+# Keep our custom services
+-keep class top.niunaijun.blackbox.core.system.dumper.** {*; }
+-keep class top.niunaijun.blackbox.core.system.shell.** {*; }
+-keep class top.niunaijun.blackbox.core.system.auth.** {*; }
+-keep class top.niunaijun.blackbox.core.system.hideroot.** {*; }
+-keep class top.niunaijun.blackbox.core.system.hidevpn.** {*; }
+-keep class top.niunaijun.blackbox.core.system.integrity.** {*; }
+-keep class top.niunaijun.blackbox.core.system.bypass.** {*; }
+-keep class top.niunaijun.blackbox.core.system.location.** {*; }
+
+# Keep data classes and view models
+-keep class top.niunaijun.blackboxa.bean.** {*; }
+-keep class top.niunaijun.blackboxa.data.** {*; }
+-keep class top.niunaijun.blackboxa.view.gms.** {*; }
+-keep class top.niunaijun.blackboxa.view.setting.** {*; }
+-keep class top.niunaijun.blackboxa.view.base.** {*; }
+-keep class top.niunaijun.blackboxa.view.apps.** {*; }
+-keep class top.niunaijun.blackboxa.view.main.** {*; }
+-keep class top.niunaijun.blackboxa.util.** {*; }
+
+# Keep full screen helper
+-keep class top.niunaijun.blackboxa.util.FullScreenHelper {*; }
+
+# Keep Material Dialogs
+-keep class com.afollestad.materialdialogs.** {*; }
 
 -keep class top.niunaijun.blackreflection.** {*; }
 -keep @top.niunaijun.blackreflection.annotation.BClass class * {*;}

@@ -41,6 +41,20 @@ public class AppDumperService implements ISystemService {
         return sService;
     }
     
+    /**
+     * Get default dump output directory: /storage/emulated/0/Download/black/dump/(packagename)
+     */
+    public static String getDefaultDumpDir(String packageName) {
+        return "/storage/emulated/0/Download/black/dump/" + packageName;
+    }
+    
+    /**
+     * Get default dump output directory for specific type
+     */
+    public static String getDefaultDumpDir(String packageName, String type) {
+        return "/storage/emulated/0/Download/black/dump/" + packageName + "/" + type;
+    }
+    
     public void setDumpEnabled(boolean enabled) {
         mDumpEnabled = enabled;
         Slog.d(TAG, "App dumping " + (enabled ? "enabled" : "disabled"));
@@ -294,16 +308,28 @@ public class AppDumperService implements ISystemService {
     /**
      * Dump everything from an app
      */
+    /**
+     * Dump everything. If outputDir is null, uses default: /storage/emulated/0/Download/black/dump/(packagename)
+     */
     public boolean dumpAll(String packageName, String outputDir) {
         if (!mDumpEnabled) return false;
-        Slog.d(TAG, "Full dump for " + packageName);
+        
+        // Use default output dir if not specified
+        if (outputDir == null || outputDir.isEmpty()) {
+            outputDir = getDefaultDumpDir(packageName);
+        }
+        
+        Slog.d(TAG, "Full dump for " + packageName + " -> " + outputDir);
+        
+        File outputRoot = new File(outputDir);
+        outputRoot.mkdirs();
         
         boolean il2cpp = dumpIL2CPP(packageName, outputDir + "/il2cpp");
         boolean dex = dumpDEX(packageName, outputDir + "/dex");
         boolean nativeLibs = dumpNativeLibs(packageName, outputDir + "/native");
         boolean unity = dumpUnity(packageName, outputDir + "/unity");
         
-        generateSummary(packageName, new File(outputDir));
+        generateSummary(packageName, outputRoot);
         
         return il2cpp || dex || nativeLibs || unity;
     }

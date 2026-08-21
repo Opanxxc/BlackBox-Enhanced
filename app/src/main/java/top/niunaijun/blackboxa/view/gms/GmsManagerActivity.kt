@@ -35,12 +35,21 @@ class GmsManagerActivity : LoadingActivity() {
     }
 
     private fun initViewModel() {
-        viewModel = ViewModelProvider(this, InjectionUtil.getGmsFactory())[GmsViewModel::class.java]
-        showLoading()
+        try {
+            viewModel = ViewModelProvider(this, InjectionUtil.getGmsFactory())[GmsViewModel::class.java]
+            showLoading()
 
-        viewModel.mInstalledLiveData.observe(this) {
+            viewModel.mInstalledLiveData.observe(this) {
+                hideLoading()
+                if (it != null && it.isNotEmpty()) {
+                    mAdapter.setItems(it)
+                } else {
+                    mAdapter.setItems(emptyList())
+                }
+            }
+        } catch (e: Exception) {
             hideLoading()
-            mAdapter.setItems(it)
+            android.util.Log.e("GmsManager", "Error initializing ViewModel: ${e.message}")
         }
 
         viewModel.mUpdateInstalledLiveData.observe(this) { result ->

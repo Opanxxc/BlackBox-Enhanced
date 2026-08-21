@@ -35,18 +35,28 @@ jobs:
       run: |
         sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
         
-    - name: Generate Keystore for Signing
+    - name: Setup Signing Key
       run: |
-        keytool -genkeypair -v \
-          -keystore release.keystore \
-          -alias blackbox \
-          -keyalg RSA \
-          -keysize 2048 \
-          -validity 10000 \
-          -storepass android123 \
-          -keypass android123 \
-          -dname "CN=BlackBox Enhanced, OU=Dev, O=BlackBox, L=Unknown, ST=Unknown, C=ID"
-          
+        # Decode keystore from GitHub secret (base64 encoded)
+        if [ -n "${{ secrets.RELEASE_KEYSTORE }}" ]; then
+          echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 -d > app/release.keystore
+          echo "✅ Using saved keystore from secrets"
+        else
+          # Generate keystore only if secret not set (first time)
+          echo "⚠️ No keystore secret found, generating temporary keystore"
+          keytool -genkeypair -v \
+            -keystore app/release.keystore \
+            -alias blackbox \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass blackbox123 \
+            -keypass blackbox123 \
+            -dname "CN=BlackBox Enhanced, OU=Dev, O=BlackBox, L=Unknown, ST=Unknown, C=ID"
+          echo "💡 Save this keystore to secrets for future builds:"
+          echo "   base64 -w 0 app/release.keystore"
+        fi
+        
     - name: Make Gradlew executable
       run: chmod +x ./gradlew
       
@@ -72,12 +82,12 @@ jobs:
         
         # Copy with proper names
         if [ -n "$DEBUG_APK" ]; then
-          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.8-debug.apk
+          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.10-debug.apk
           echo "✅ Debug APK ready"
         fi
         
         if [ -n "$RELEASE_APK" ]; then
-          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.8-release.apk
+          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.10-release.apk
           echo "✅ Release APK ready"
         fi
         
@@ -87,40 +97,40 @@ jobs:
         
     - name: Delete Old Release
       run: |
-        gh release delete v0.0.8 --repo ${{ github.repository }} --yes 2>/dev/null || true
-        git tag -d v0.0.8 2>/dev/null || true
-        git push origin :refs/tags/v0.0.8 2>/dev/null || true
+        gh release delete v0.0.10 --repo ${{ github.repository }} --yes 2>/dev/null || true
+        git tag -d v0.0.10 2>/dev/null || true
+        git push origin :refs/tags/v0.0.10 2>/dev/null || true
         
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "BlackBox Enhanced v0.0.8"
-        tag_name: "v0.0.8"
+        name: "BlackBox Enhanced v0.0.10"
+        tag_name: "v0.0.10"
         body: |
-          ## BlackBox Enhanced v0.0.8
+          ## BlackBox Enhanced v0.0.10
           
           **Enhanced by Panxcz & Freebuff** | Original by ALEX502
           
-          ### 📱 What's New
-          - App Dumper (dump.cs, il2cpp.h, main.h, game.h)
+          ### 📱 What's New in v0.0.10
+          - ✅ Default dump output: /storage/emulated/0/Download/black/dump/(packagename)
+          - ✅ Fixed GMS Manager white screen
+          - ✅ Persistent signing key (can install-over without losing data!)
+          - ✅ Immersive fullscreen mode (game-like)
+          - ✅ Fixed MT Manager crashes
+          - ✅ All bypass features working
+          - ✅ Custom keystore support
+          
+          ### 🔐 Features
           - Shell script execution (.sh support)
           - Google login integration
-          - Advanced root hiding (Kernel-level)
+          - Advanced root hiding (Kernel-level, Magisk, KSU, APatch)
           - VPN hiding
           - Enhanced fake location with GPS simulation
           - SafetyNet/Play Integrity bypass
           - Frida/Xposed/Substrate detection bypass
           - Hook detection bypass
+          - App Dumper (dump.cs, il2cpp.h, main.h, game.h)
           - Android 5.0 - 17 support
-          
-          ### 📱 App Dumper Features
-          - IL2CPP dump (dump.cs, il2cpp.h)
-          - Unity game dump (main.h, game.h)
-          - DEX extraction
-          - Native SO analysis
-          - Class/method enumeration
-          - String dump
-          - Custom output options
           
           ### 📲 Installation
           1. Download the **universal** APK below
@@ -133,34 +143,44 @@ jobs:
           
           ### 📝 Note
           - Only universal APK uploaded (works on all architectures)
-          - APK is auto-signed with RSA-2048
+          - APK is signed with persistent key (can upgrade without data loss)
         files: |
-          BlackBox-Enhanced-v0.0.8-debug.apk
-          BlackBox-Enhanced-v0.0.8-release.apk
+          BlackBox-Enhanced-v0.0.10-debug.apk
+          BlackBox-Enhanced-v0.0.10-release.apk
         draft: false
         prerelease: false
         make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        KEYSTORE_PASSWORD: blackbox123
+        KEY_ALIAS: blackbox
+        KEY_PASSWORD: blackbox123
         
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: BlackBox-Enhanced-v0.0.8
+        name: BlackBox-Enhanced-v0.0.10
         path: "*.apk"
         retention-days: 90
         if-no-files-found: warn
         
     - name: Build Summary
       run: |
-        echo "## 🎉 Build Summary - BlackBox Enhanced v0.0.8" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 Build Summary - BlackBox Enhanced v0.0.10" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Universal APK Only" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- **Debug APK**: BlackBox-Enhanced-v0.0.8-debug.apk" >> $GITHUB_STEP_SUMMARY
-        echo "- **Release APK**: BlackBox-Enhanced-v0.0.8-release.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Debug APK**: BlackBox-Enhanced-v0.0.10-debug.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release APK**: BlackBox-Enhanced-v0.0.10-release.apk" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Download" >> $GITHUB_STEP_SUMMARY
-        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.0.8)" >> $GITHUB_STEP_SUMMARY
+        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.0.10)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔑 Signing" >> $GITHUB_STEP_SUMMARY
+        if [ -n "${{ secrets.RELEASE_KEYSTORE }}" ]; then
+          echo "✅ Using persistent keystore (can install-over!)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Using temporary keystore (first build)" >> $GITHUB_STEP_SUMMARY
+        fi

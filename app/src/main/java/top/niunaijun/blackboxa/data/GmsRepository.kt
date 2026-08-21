@@ -13,53 +13,88 @@ class GmsRepository {
 
 
     fun getGmsInstalledList(mInstalledLiveData: MutableLiveData<List<GmsBean>>) {
-        val userList = arrayListOf<GmsBean>()
+        try {
+            val userList = arrayListOf<GmsBean>()
 
-        BlackBoxCore.get().users.forEach {
-            val userId = it.id
-            val userName =
-                AppManager.mRemarkSharedPreferences.getString("Remark$userId", "User $userId") ?: ""
-            val isInstalled = BlackBoxCore.get().isInstallGms(userId)
-            val bean = GmsBean(userId, userName, isInstalled)
-            userList.add(bean)
+            val users = BlackBoxCore.get().users
+            if (users == null || users.isEmpty()) {
+                // No users yet, create default user 0
+                val defaultBean = GmsBean(0, "User 0", false)
+                userList.add(defaultBean)
+                mInstalledLiveData.postValue(userList)
+                return
+            }
+
+            users.forEach {
+                try {
+                    val userId = it.id
+                    val userName =
+                        AppManager.mRemarkSharedPreferences.getString("Remark$userId", "User $userId") ?: "User $userId"
+                    val isInstalled = try {
+                        BlackBoxCore.get().isInstallGms(userId)
+                    } catch (e: Exception) {
+                        false
+                    }
+                    val bean = GmsBean(userId, userName, isInstalled)
+                    userList.add(bean)
+                } catch (e: Exception) {
+                    android.util.Log.e("GmsRepository", "Error processing user: ${e.message}")
+                }
+            }
+
+            mInstalledLiveData.postValue(userList)
+        } catch (e: Exception) {
+            android.util.Log.e("GmsRepository", "Error getting GMS list: ${e.message}")
+            // Post empty list with default user so UI shows something
+            val fallback = arrayListOf(GmsBean(0, "User 0", false))
+            mInstalledLiveData.postValue(fallback)
         }
-
-        mInstalledLiveData.postValue(userList)
     }
 
     fun installGms(
         userID: Int,
         mUpdateInstalledLiveData: MutableLiveData<GmsInstallBean>
     ) {
-        val installResult = BlackBoxCore.get().installGms(userID)
+        try {
+            val installResult = BlackBoxCore.get().installGms(userID)
 
-        val result = if (installResult.success) {
-            getString(R.string.install_success)
-        } else {
-            getString(R.string.install_fail, installResult.msg)
+            val result = if (installResult.success) {
+                getString(R.string.install_success)
+            } else {
+                getString(R.string.install_fail, installResult.msg ?: "Unknown error")
+            }
+
+            val bean = GmsInstallBean(userID, installResult.success, result)
+            mUpdateInstalledLiveData.postValue(bean)
+        } catch (e: Exception) {
+            android.util.Log.e("GmsRepository", "Error installing GMS: ${e.message}")
+            val bean = GmsInstallBean(userID, false, "Install failed: ${e.message}")
+            mUpdateInstalledLiveData.postValue(bean)
         }
-
-        val bean = GmsInstallBean(userID,installResult.success,result)
-        mUpdateInstalledLiveData.postValue(bean)
     }
 
     fun uninstallGms(
         userID: Int,
         mUpdateInstalledLiveData: MutableLiveData<GmsInstallBean>
     ) {
-        var isSuccess = false
-        if (BlackBoxCore.get().isInstallGms(userID)) {
-            isSuccess = BlackBoxCore.get().uninstallGms(userID)
+        try {
+            var isSuccess = false
+            if (BlackBoxCore.get().isInstallGms(userID)) {
+                isSuccess = BlackBoxCore.get().uninstallGms(userID)
+            }
+
+            val result = if (isSuccess) {
+                getString(R.string.uninstall_success)
+            } else {
+                getString(R.string.uninstall_fail)
+            }
+
+            val bean = GmsInstallBean(userID, isSuccess, result)
+            mUpdateInstalledLiveData.postValue(bean)
+        } catch (e: Exception) {
+            android.util.Log.e("GmsRepository", "Error uninstalling GMS: ${e.message}")
+            val bean = GmsInstallBean(userID, false, "Uninstall failed: ${e.message}")
+            mUpdateInstalledLiveData.postValue(bean)
         }
-
-        val result = if (isSuccess) {
-            getString(R.string.uninstall_success)
-        } else {
-            getString(R.string.uninstall_fail)
-        }
-
-        val bean = GmsInstallBean(userID,isSuccess,result)
-
-        mUpdateInstalledLiveData.postValue(bean)
     }
 }

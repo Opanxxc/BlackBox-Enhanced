@@ -28,9 +28,35 @@ android {
         }
     }
 
-    buildTypes {
+    signingConfigs {
         release {
+            def ksFile = file("release.keystore")
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "blackbox123"
+                keyAlias System.getenv("KEY_ALIAS") ?: "blackbox"
+                keyPassword System.getenv("KEY_PASSWORD") ?: "blackbox123"
+            } else {
+                // Fallback to debug signing if keystore not found
+                storeFile debug.keyStoreFile
+                storePassword debug.keyStorePassword
+                keyAlias debug.keyAlias
+                keyPassword debug.keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
             signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
+        release {
+            if (signingConfigs.release.storeFile != null && signingConfigs.release.storeFile.exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -94,8 +120,6 @@ dependencies {
     
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
-
-
 
 
 
