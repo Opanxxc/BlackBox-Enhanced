@@ -596,211 +596,116 @@ public class AppDumperService implements ISystemService {
             sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.8\n");
             sb.append("// Package: ").append(pkg).append("\n");
             sb.append("// Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
-            sb.append("// Generated: ").append(ts).append("\n");
-            sb.append("// Tool: BlackBox Enhanced - Real IL2CPP Metadata Dump\n\n");
+            sb.append("// Generated: ").append(ts).append("\n\n");
             sb.append("using System;\nusing System.Collections.Generic;\nusing System.Reflection;\n\n");
             
-            // Try to parse real IL2CPP metadata
             boolean parsed = false;
             MetadataParser metaParser = null;
             File dataDir = new File(ai.dataDir);
-            
-            // Find global-metadata.dat
             File metadataFile = null;
+            
+            // 1. Try standard paths
             String[] metaPaths = {
                 "files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/asset/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/bin/Data/Managed/Metadata/global-metadata.dat",
                 "files/Managed/Metadata/global-metadata.dat",
                 "files/Managed/global-metadata.dat",
-                "global-metadata.dat",
-                // MLBB and other game-specific paths
                 "files/Data/Managed/Metadata/global-metadata.dat",
-                "assets/bin/Data/Managed/Metadata/global-metadata.dat",
-                "bin/Data/Managed/Metadata/global-metadata.dat",
-                "Data/Managed/Metadata/global-metadata.dat"
-            };
-            // Also search common OBB/split paths
-            String[] obbSearch = {
-                "/data/data/" + pkg + "/files/assets/bin/Data/Managed/Metadata/global-metadata.dat",
-                "/data/user/0/" + pkg + "/files/assets/bin/Data/Managed/Metadata/global-metadata.dat"
+                "assets/bin/Data/Managed/Metadata/global-metadata.dat"
             };
             for (String p : metaPaths) {
-                File f = new File(dataDir, p);
-                if (f.exists()) {
-                    metadataFile = f;
-                    break;
-                }
+                File m = new File(dataDir, p);
+                if (m.exists()) { metadataFile = m; break; }
             }
             
-            if (metadataFile != null) {
-                Slog.i(TAG, "  Found global-metadata.dat: " + metadataFile.length() + " bytes");
-                metaParser = new MetadataParser();
-                parsed = metaParser.parse(metadataFile);
-                if (parsed) {
-                    Slog.i(TAG, "  IL2CPP metadata parsed: " + metaParser.getClassCount() + " classes, "
-                        + metaParser.getMethodCount() + " methods, " + metaParser.getFieldCount() + " fields");
-                } else {
-                    Slog.w(TAG, "  IL2CPP metadata parse failed, using fallback");
-                }
-            } else {
-                // Try OBB directory (MLBB stores data there)
-                File obbDir = new File(ai.dataDir, "../");
-                Slog.w(TAG, "  global-metadata.dat not found, searching recursively...");
-                // Also check parent directories for split APK / OBB storage
-                String[] obbSearchDirs = {
-                    ai.dataDir,
-                    new File(ai.dataDir, "files").getAbsolutePath(),
-                    new File(ai.dataDir, "obb").getAbsolutePath(),
+            // 2. Try OBB and external dirs
+            if (metadataFile == null) {
+                String[] searchDirs = {
+                    dataDir.getAbsolutePath(),
+                    new File(dataDir, "files").getAbsolutePath(),
+                    new File(dataDir, "obb").getAbsolutePath(),
                     Environment.getExternalStoragePublicDirectory("Android/obb/" + pkg).getAbsolutePath(),
                     Environment.getExternalStoragePublicDirectory("Android/data/" + pkg).getAbsolutePath()
                 };
-                for (String searchDir : obbSearchDirs) {
-                    File dir = new File(searchDir);
-                    if (dir.exists()) {
-                        File found = findFileRecursive(dir, "global-metadata.dat", 10);
-                        if (found != null) {
-                            metadataFile = found;
-                            Slog.i(TAG, "  Found metadata: " + found.getAbsolutePath() + " (" + found.length() + " bytes)");
-                            metaParser = new MetadataParser();
-                            parsed = metaParser.parse(metadataFile);
-                            break;
-                        }
+                for (String dir : searchDirs) {
+                    File d = new File(dir);
+                    if (d.exists()) {
+                        File found = findFileRecursive(d, "global-metadata.dat", 10);
+                        if (found != null) { metadataFile = found; break; }
                     }
-                }
-                // Final fallback: search entire data dir
-                if (metadataFile == null) {
-                File dataBase = new File(ai.dataDir);
-                if (dataBase.exists()) {
-                    File found = findFileRecursive(dataBase, "global-metadata.dat", 8);
-                    if (found != null) {
-                        metadataFile = found;
-                        Slog.i(TAG, "  Found metadata recursively: " + found.getAbsolutePath() + " (" + found.length() + " bytes)");
-                        metaParser = new MetadataParser();
-                        parsed = metaParser.parse(metadataFile);
-                    }
-                }
-                if (metadataFile == null) {
-                    Slog.w(TAG, "  global-metadata.dat not found anywhere, using fallback");
                 }
             }
             
-            // Also try to find libil2cpp.so for symbol resolution
-            File libDir = new File(ai.nativeLibraryDir);
-            File il2cppSo = new File(libDir, "libil2cpp.so");
+            // 3. Parse metadata
+            if (metadataFile != null) {
+                Slog.i(TAG, "  Found metadata: " + metadataFile.getAbsolutePath() + " (" + metadataFile.length() + " bytes)");
+                metaParser = new MetadataParser();
+                parsed = metaParser.parse(metadataFile);
+                if (parsed) {
+                    Slog.i(TAG, "  Parsed: " + metaParser.getClassCount() + " classes, " + metaParser.getMethodCount() + " methods");
+                }
+            } else {
+                Slog.w(TAG, "  metadata not found, using fallback");
+            }
             
+            // 4. Generate dump.cs
             if (parsed && metaParser != null) {
-                // === REAL IL2CPP DUMP ===
                 List<MetadataParser.IL2CPPClass> classes = metaParser.getClasses();
+                sb.append("// Real IL2CPP Metadata: ").append(classes.size()).append(" classes\n\n");
                 
-                sb.append("// === REAL IL2CPP METADATA DUMP ===\n");
-                sb.append("// Metadata version: ").append(metaParser.getVersion()).append("\n");
-                sb.append("// Classes: ").append(classes.size()).append("\n");
-                sb.append("// Methods: ").append(metaParser.getMethodCount()).append("\n");
-                sb.append("// Fields: ").append(metaParser.getFieldCount()).append("\n\n");
-                
-                // Group classes by assembly (imageUrlIndex)
                 Map<Integer, List<MetadataParser.IL2CPPClass>> assemblies = new LinkedHashMap<>();
                 for (MetadataParser.IL2CPPClass cls : classes) {
                     assemblies.computeIfAbsent(cls.imageUrlIndex, k -> new ArrayList<>()).add(cls);
                 }
                 
                 for (Map.Entry<Integer, List<MetadataParser.IL2CPPClass>> entry : assemblies.entrySet()) {
-                    sb.append("// ═══ Assembly Image Index: ").append(entry.getKey()).append(" ═══\n\n");
-                    
+                    sb.append("// === Assembly Image Index: ").append(entry.getKey()).append(" ===\n\n");
                     for (MetadataParser.IL2CPPClass cls : entry.getValue()) {
                         if (cls.name == null || cls.name.isEmpty()) continue;
-                        
-                        // Clean class name (remove Il2Cpp prefix)
                         String className = cls.name.replace("/", ".");
-                        String simpleName = className.contains(".") ? 
-                            className.substring(className.lastIndexOf(".") + 1) : className;
+                        String simpleName = className.contains(".") ? className.substring(className.lastIndexOf(".") + 1) : className;
                         
-                        sb.append("// [0x").append(String.format("%04x", cls.index)).append("] ");
-                        if (cls.namespace != null && !cls.namespace.isEmpty()) {
-                            sb.append("namespace: ").append(cls.namespace).append(" | ");
-                        }
-                        sb.append("fields: ").append(cls.fieldCount).append(", methods: ").append(cls.methodCount).append("\n");
+                        sb.append("// [0x").append(String.format("%04x", cls.index)).append("] fields=").append(cls.fieldCount).append(", methods=").append(cls.methodCount).append("\n");
+                        sb.append("public class ").append(simpleName).append(" : Il2CppObject\n{\n");
                         
-                        sb.append("[Il2CppDummyDll.ClassMetadata(").append("0x").append(String.format("%08x", cls.index * 0x100)).append(")]\n");
-                        
-                        // Parent class
-                        String parent = "Il2CppObject";
-                        if (cls.parentIndex >= 0 && cls.parentIndex < classes.size()) {
-                            MetadataParser.IL2CPPClass parentCls = classes.get(cls.parentIndex);
-                            if (parentCls.name != null) {
-                                parent = parentCls.name.replace("/", ".");
-                                parent = parent.contains(".") ? parent.substring(parent.lastIndexOf(".") + 1) : parent;
-                            }
-                        }
-                        
-                        sb.append("public class ").append(simpleName).append(" : ").append(parent).append("\n{\n");
-                        
-                        // Real fields with computed offsets
-                        int fieldOff = 0x10; // Il2CppObject base size
+                        int fieldOff = 0x10;
                         for (MetadataParser.IL2CPPField field : cls.fields) {
-                            String access = (field.flags & 0x0001) != 0 ? "public " :
-                                (field.flags & 0x0002) != 0 ? "private " : "public ";
-                            if ((field.flags & 0x0008) != 0) access += "static ";
-                            
-                            sb.append("    ").append(access);
-                            sb.append(mapTypeFromIndex(field.typeIndex)).append(" ");
-                            sb.append(field.name);
-                            sb.append("; // 0x").append(String.format("%02x", fieldOff));
-                            sb.append(" | token=0x").append(String.format("%08x", field.token));
-                            sb.append("\n");
-                            fieldOff += 4; // simplified alignment
+                            sb.append("    public object ").append(field.name).append("; // 0x").append(String.format("%02x", fieldOff)).append("\n");
+                            fieldOff += 4;
                         }
-                        
                         if (!cls.fields.isEmpty()) sb.append("\n");
                         
-                        // Real methods with RVA
                         for (MetadataParser.IL2CPPMethod method : cls.methods) {
-                            String access = (method.flags & 0x0008) != 0 ? "static " : "";
-                            if ((method.flags & 0x0400) != 0) access += "extern ";
-                            if ((method.flags & 0x0010) != 0) access += "virtual ";
-                            
-                            sb.append("    ").append(access);
-                            sb.append(mapTypeFromIndex(method.returnTypeIndex)).append(" ");
-                            sb.append(method.name);
-                            sb.append("(); // RVA: 0x");
-                            sb.append(String.format("%08x", method.methodRVA));
-                            sb.append(" | token=0x").append(String.format("%08x", method.token));
-                            sb.append("\n");
+                            sb.append("    public extern void ").append(method.name).append("(); // RVA: 0x").append(String.format("%08x", method.methodRVA)).append("\n");
                         }
                         sb.append("}\n\n");
                     }
                 }
             } else {
-                // === FALLBACK: Extract strings from metadata ===
-                sb.append("// IL2CPP METADATA - Fallback String Extraction\n");
-                sb.append("// Structured parse failed, using raw string extraction\n\n");
-                
+                // Fallback: extract strings from metadata
+                sb.append("// Fallback: string extraction\n\n");
                 if (metadataFile != null) {
-                    List<String> rawStrings = MetadataParser.extractRawStrings(metadataFile, 4);
-                    sb.append("// Found ").append(rawStrings.size()).append(" strings in metadata\n\n");
-                    
-                    // Categorize extracted strings
+                    List<String> raw = MetadataParser.extractRawStrings(metadataFile, 4);
+                    sb.append("// Found ").append(raw.size()).append(" strings\n\n");
                     int count = 0;
-                    for (String s : rawStrings) {
+                    for (String s : raw) {
                         sb.append(s).append("\n");
-                        count++;
-                        if (count > 5000) {
-                            sb.append("// ... truncated (showing first 5000 strings)\n");
-                            break;
-                        }
+                        if (++count > 3000) { sb.append("// truncated\n"); break; }
                     }
                 } else {
                     sb.append("// No metadata file found\n");
-                    sb.append("// Ensure the target app uses IL2CPP backend\n");
                 }
             }
             
             writeToFile(new File(output, "dump.cs"), sb.toString());
             Slog.i(TAG, "  dump.cs generated (" + (parsed ? "real IL2CPP" : "fallback") + ")");
-        } catch (Exception e) { Slog.e(TAG, "generateDumpCs error: " + e.getMessage()); }
+        } catch (Exception e) {
+            Slog.e(TAG, "generateDumpCs error: " + e.getMessage());
+        }
     }
     
+
     private String mapTypeFromIndex(int typeIndex) {
         // Simplified type mapping based on IL2CPP type indices
         if (typeIndex < 0) return "void";
