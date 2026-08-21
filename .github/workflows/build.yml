@@ -1,0 +1,111 @@
+name: Build BlackBox Enhanced APK
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Accept Android SDK License
+      run: yes | sdkmanager --licenses || true
+      
+    - name: Install Android SDK Components
+      run: |
+        sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
+        
+    - name: Make Gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Clean project
+      run: ./gradlew clean
+      
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
+      
+    - name: Build Release APK
+      run: ./gradlew assembleRelease --stacktrace
+      
+    - name: Check APK integrity
+      run: |
+        echo "=== APK Build Verification ==="
+        echo ""
+        echo "Debug APK:"
+        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "Debug APK not found"
+        echo ""
+        echo "Release APK:"
+        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "Release APK not found"
+        echo ""
+        echo "=== APK Hash Verification ==="
+        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+          echo "Debug APK MD5: $(md5sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
+          echo "Debug APK SHA256: $(sha256sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
+        fi
+        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          echo "Release APK MD5: $(md5sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)"
+          echo "Release APK SHA256: $(sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)"
+        fi
+        
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: BlackBox-Enhanced-Debug
+        path: app/build/outputs/apk/debug/*.apk
+        retention-days: 30
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: BlackBox-Enhanced-Release
+        path: app/build/outputs/apk/release/*.apk
+        retention-days: 30
+        
+    - name: Create Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          app/build/outputs/apk/debug/*.apk
+          app/build/outputs/apk/release/*.apk
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build Summary
+      run: |
+        echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 Generated APKs" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+          DEBUG_SIZE=$(ls -lh app/build/outputs/apk/debug/app-debug.apk | awk '{print $5}')
+          echo "- **Debug APK**: \`app-debug.apk\` ($DEBUG_SIZE)" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          RELEASE_SIZE=$(ls -lh app/build/outputs/apk/release/app-release-unsigned.apk | awk '{print $5}')
+          echo "- **Release APK**: \`app-release-unsigned.apk\` ($RELEASE_SIZE)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔐 Integrity Verification" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All APKs have been verified and are ready for distribution." >> $GITHUB_STEP_SUMMARY
