@@ -71,7 +71,32 @@ AppDumperService.get().dumpAll(packageName, outputDir);
 
 ## 📲 Download
 
-[![Download APK](https://img.shields.io/badge/Download-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.0.8)
+[![Download APK](https://img.shields.io/badge/Download-Universal-APK-blue?style=for-the-badge)](https://github.com/Opanxxc/BlackBox-Enhanced/releases/tag/v0.0.8)
+
+> **Note:** Only universal APK uploaded (works on all architectures)
+
+## 🛠️ Recommended Tools
+
+| Tool | Description | Link |
+|------|-------------|------|
+| **MT Manager** | APK editor, DEX editor, signing | [mt2.cn](https://www.mt2.cn/) |
+| **NP Manager** | Advanced APK editor, reverse engineering | [npnut.com](https://npnut.com/) |
+| **Apktool** | APK reverse engineering | [GitHub](https://github.com/iBotPeaches/Apktool) |
+| **jadx** | DEX to Java decompiler | [GitHub](https://github.com/skylot/jadx) |
+| **dex2jar** | DEX to JAR converter | [GitHub](https://github.com/pxb1988/dex2jar) |
+
+### Download Managers
+
+```bash
+# Run the download script
+./tools/download_managers.sh
+
+# Or manually download MT Manager / NP Manager
+# and place them in tools/managers/
+```
+
+> **Note:** MT Manager and NP Manager are not open source.
+> Download from their official sites and include manually.
 
 ## 🛠️ Build
 

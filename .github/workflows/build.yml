@@ -56,37 +56,34 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace
       
-    - name: Build Release APK (Signed)
+    - name: Build Release APK
       run: ./gradlew assembleRelease --stacktrace
       
-    - name: Find and Prepare APKs
+    - name: Prepare Universal APKs
       run: |
-        echo "=== Finding APK files ==="
-        find . -name "*.apk" -type f 2>/dev/null
-        echo ""
-        echo "=== Debug APK ==="
-        ls -la app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "Not found"
-        echo ""
-        echo "=== Release APK ==="
-        ls -la app/build/outputs/apk/release/*.apk 2>/dev/null || echo "Not found"
+        echo "=== Preparing Universal APKs ==="
         
-        # Find universal APKs and copy with new names
+        # Find universal APKs only
         DEBUG_APK=$(find app/build/outputs/apk/debug -name "*universal-debug.apk" | head -1)
         RELEASE_APK=$(find app/build/outputs/apk/release -name "*universal-release.apk" | head -1)
         
+        echo "Debug APK: $DEBUG_APK"
+        echo "Release APK: $RELEASE_APK"
+        
+        # Copy with proper names
         if [ -n "$DEBUG_APK" ]; then
           cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.8-debug.apk
-          echo "Debug APK prepared: $DEBUG_APK"
+          echo "✅ Debug APK ready"
         fi
         
         if [ -n "$RELEASE_APK" ]; then
           cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.8-release.apk
-          echo "Release APK prepared: $RELEASE_APK"
+          echo "✅ Release APK ready"
         fi
         
         echo ""
-        echo "=== APKs ready for release ==="
-        ls -la *.apk 2>/dev/null || echo "No APKs found"
+        echo "=== APKs ready ==="
+        ls -la *.apk 2>/dev/null
         
     - name: Delete Old Release
       run: |
@@ -116,27 +113,27 @@ jobs:
           - Hook detection bypass
           - Android 5.0 - 17 support
           
-          ### 🔐 Security Features
-          - Root hiding: Magisk, KSU, APatch, Kernel-level
-          - Hook bypass: Frida, Xposed, Substrate
-          - Memory mapping hiding
-          - /proc manipulation
-          - SELinux enforcing spoof
-          
           ### 📱 App Dumper Features
           - IL2CPP dump (dump.cs, il2cpp.h)
           - Unity game dump (main.h, game.h)
           - DEX extraction
+          - Native SO analysis
+          - Class/method enumeration
+          - String dump
           - Custom output options
           
           ### 📲 Installation
-          1. Download the APK below
+          1. Download the **universal** APK below
           2. Enable "Unknown Sources" in settings
           3. Install and enjoy!
           
           ### 🙏 Credits
           - Original: ALEX502
           - Enhanced by: Panxcz & Freebuff
+          
+          ### 📝 Note
+          - Only universal APK uploaded (works on all architectures)
+          - APK is auto-signed with RSA-2048
         files: |
           BlackBox-Enhanced-v0.0.8-debug.apk
           BlackBox-Enhanced-v0.0.8-release.apk
@@ -160,7 +157,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📱 Generated APKs (Auto-Signed)" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 Universal APK Only" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "- **Debug APK**: BlackBox-Enhanced-v0.0.8-debug.apk" >> $GITHUB_STEP_SUMMARY
         echo "- **Release APK**: BlackBox-Enhanced-v0.0.8-release.apk" >> $GITHUB_STEP_SUMMARY
