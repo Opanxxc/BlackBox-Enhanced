@@ -300,12 +300,12 @@ public class AppDumperService implements ISystemService {
         
         boolean il2cpp = dumpIL2CPP(packageName, outputDir + "/il2cpp");
         boolean dex = dumpDEX(packageName, outputDir + "/dex");
-        boolean native = dumpNativeLibs(packageName, outputDir + "/native");
+        boolean nativeLibs = dumpNativeLibs(packageName, outputDir + "/native");
         boolean unity = dumpUnity(packageName, outputDir + "/unity");
         
         generateSummary(packageName, new File(outputDir));
         
-        return il2cpp || dex || native || unity;
+        return il2cpp || dex || nativeLibs || unity;
     }
     
     // ==================== ANALYSIS ====================
