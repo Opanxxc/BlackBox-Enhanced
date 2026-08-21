@@ -157,7 +157,7 @@ public class HookDumper {
     private void hookDexClassLoader() {
         try {
             Class<?> clazz = Class.forName("dalvik.system.DexClassLoader");
-            Slog.d-Javadoc(TAG, "DexClassLoader available");
+            Slog.d(TAG, "DexClassLoader available");
         } catch (Exception e) {
             Slog.d(TAG, "DexClassLoader: " + e.getMessage());
         }
