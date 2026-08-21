@@ -426,13 +426,16 @@ class AppsRepository {
                 Log.w(TAG, "Failed to apply bypasses: ${e.message}")
             }
             
-            // Auto-dump if enabled
+            // Auto-dump only if explicitly enabled (off by default to prevent force close)
             try {
                 val dumper = top.niunaijun.blackbox.core.system.dumper.AppDumperService.get()
-                if (dumper.isDumpEnabled && dumper.isIL2CPPApp(packageName)) {
-                    Log.i(TAG, "Auto-dumping IL2CPP for $packageName")
+                val autoDumpPref = BlackBoxCore.getContext().getSharedPreferences("settings", 0)
+                val autoDump = autoDumpPref.getBoolean("auto_dump_enabled", false)
+                if (autoDump && dumper.isDumpEnabled && dumper.isIL2CPPApp(packageName)) {
+                    Log.i(TAG, "Auto-dumping IL2CPP for $packageName (delayed 8s)")
                     Thread {
                         try {
+                            Thread.sleep(8000) // Wait for app to fully load
                             val outputDir = top.niunaijun.blackbox.core.system.dumper.AppDumperService.getDefaultDumpDir(packageName)
                             dumper.dumpAll(packageName, outputDir)
                             Log.i(TAG, "Dump completed: $outputDir")

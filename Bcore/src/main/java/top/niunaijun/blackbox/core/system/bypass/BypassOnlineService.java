@@ -30,13 +30,6 @@ public class BypassOnlineService {
     private void setupHostsBlock() {
         mBlockedHosts.add("report.datadoghq.com");
         mBlockedHosts.add("app-measurement.com");
-        mBlockedHosts.add("firebaseinstallations.googleapis.com");
-        mBlockedHosts.add("play.googleapis.com");
-        mBlockedHosts.add("play-lb.googleusercontent.com");
-        mBlockedHosts.add("safebrowsing.googleapis.com");
-        mBlockedHosts.add("android.clients.google.com");
-        mBlockedHosts.add("fcm.googleapis.com");
-        mBlockedHosts.add("jnn-pa.googleapis.com");
         mBlockedHosts.add("adservice.google.com");
         mBlockedHosts.add("pagead2.googlesyndication.com");
         mBlockedHosts.add("doubleclick.net");

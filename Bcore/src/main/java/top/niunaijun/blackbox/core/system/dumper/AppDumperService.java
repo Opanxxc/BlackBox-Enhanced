@@ -588,7 +588,7 @@ public class AppDumperService implements ISystemService {
             StringBuilder sb = new StringBuilder();
             String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date());
             
-            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.4\n");
+            sb.append("// IL2CPP Class/Method Dump - BlackBox Enhanced v0.1.5\n");
             sb.append("// Package: ").append(pkg).append("\n");
             sb.append("// Version: ").append(pi.versionName).append(" (").append(pi.versionCode).append(")\n");
             sb.append("// Generated: ").append(ts).append("\n");
