@@ -47,15 +47,6 @@ jobs:
           -keypass android123 \
           -dname "CN=BlackBox Enhanced, OU=Dev, O=BlackBox, L=Unknown, ST=Unknown, C=ID"
           
-    - name: Configure Signing
-      run: |
-        cat > keystore.properties << EOF
-        storePassword=android123
-        keyPassword=android123
-        keyAlias=blackbox
-        file=release.keystore
-        EOF
-        
     - name: Make Gradlew executable
       run: chmod +x ./gradlew
       
@@ -68,92 +59,7 @@ jobs:
     - name: Build Release APK (Signed)
       run: ./gradlew assembleRelease --stacktrace
       
-    - name: Sign Debug APK
-      run: |
-        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-          -keystore release.keystore -storepass android123 -keypass android123 \
-          app/build/outputs/apk/debug/app-debug.apk blackbox || true
-          
-    - name: Sign Release APK
-      run: |
-        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-          -keystore release.keystore -storepass android123 -keypass android123 \
-          app/build/outputs/apk/release/app-release-unsigned.apk blackbox || true
-          
-    - name: Zipalign APKs
-      run: |
-        if [ -f "$ANDROID_HOME/build-tools/35.0.0/zipalign" ]; then
-          $ANDROID_HOME/build-tools/35.0.0/zipalign -f -v 4 \
-            app/build/outputs/apk/debug/app-debug.apk \
-            app/build/outputs/apk/debug/app-debug-aligned.apk || true
-          $ANDROID_HOME/build-tools/35.0.0/zipalign -f -v 4 \
-            app/build/outputs/apk/release/app-release-unsigned.apk \
-            app/build/outputs/apk/release/app-release-aligned.apk || true
-        fi
-        
-    - name: Verify APK Integrity
-      run: |
-        echo "=== APK Build Verification ==="
-        echo ""
-        echo "Debug APK:"
-        ls -lh app/build/outputs/apk/debug/*.apk 2>/dev/null || echo "Debug APK not found"
-        echo ""
-        echo "Release APK:"
-        ls -lh app/build/outputs/apk/release/*.apk 2>/dev/null || echo "Release APK not found"
-        echo ""
-        echo "=== APK Hash Verification ==="
-        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-          echo "Debug APK MD5: $(md5sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
-          echo "Debug APK SHA256: $(sha256sum app/build/outputs/apk/debug/app-debug.apk | cut -d' ' -f1)"
-        fi
-        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-          echo "Release APK MD5: $(md5sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)"
-          echo "Release APK SHA256: $(sha256sum app/build/outputs/apk/release/app-release-unsigned.apk | cut -d' ' -f1)"
-        fi
-        echo ""
-        echo "=== APK Signature Verification ==="
-        if command -v jarsigner &> /dev/null; then
-          jarsigner -verify app/build/outputs/apk/debug/app-debug.apk 2>&1 | head -5 || true
-          jarsigner -verify app/build/outputs/apk/release/app-release-unsigned.apk 2>&1 | head -5 || true
-        fi
-        
-    - name: Rename APKs for Distribution
-      run: |
-        VERSION=$(grep 'versionName' app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
-        COMMIT=$(git rev-parse --short HEAD)
-        DATE=$(date +%Y%m%d)
-        
-        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-          cp app/build/outputs/apk/debug/app-debug.apk \
-            "BlackBox-Enhanced-v${VERSION}-debug-${COMMIT}.apk"
-        fi
-        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-          cp app/build/outputs/apk/release/app-release-unsigned.apk \
-            "BlackBox-Enhanced-v${VERSION}-release-${COMMIT}.apk"
-        fi
-        
-    - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: BlackBox-Enhanced-Debug
-        path: |
-          app/build/outputs/apk/debug/*.apk
-          BlackBox-Enhanced-v*-debug-*.apk
-        retention-days: 90
-        if-no-files-found: warn
-        
-    - name: Upload Release APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: BlackBox-Enhanced-Release
-        path: |
-          app/build/outputs/apk/release/*.apk
-          BlackBox-Enhanced-v*-release-*.apk
-        retention-days: 90
-        if-no-files-found: warn
-        
-    - name: Find APK Files
-      id: find-apk
+    - name: Find and Prepare APKs
       run: |
         echo "=== Finding APK files ==="
         find . -name "*.apk" -type f 2>/dev/null
@@ -164,28 +70,42 @@ jobs:
         echo "=== Release APK ==="
         ls -la app/build/outputs/apk/release/*.apk 2>/dev/null || echo "Not found"
         
-        # Copy universal APKs to root for release
-        cp app/build/outputs/apk/debug/BlackBox_5.0.0_universal-debug.apk ./BlackBox-Enhanced-debug.apk 2>/dev/null || true
-        cp app/build/outputs/apk/release/BlackBox_5.0.0_universal-release.apk ./BlackBox-Enhanced-release.apk 2>/dev/null || true
+        # Find universal APKs and copy with new names
+        DEBUG_APK=$(find app/build/outputs/apk/debug -name "*universal-debug.apk" | head -1)
+        RELEASE_APK=$(find app/build/outputs/apk/release -name "*universal-release.apk" | head -1)
         
-        echo "=== APKs ready ==="
+        if [ -n "$DEBUG_APK" ]; then
+          cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.0.7-debug.apk
+          echo "Debug APK prepared: $DEBUG_APK"
+        fi
+        
+        if [ -n "$RELEASE_APK" ]; then
+          cp "$RELEASE_APK" ./BlackBox-Enhanced-v0.0.7-release.apk
+          echo "Release APK prepared: $RELEASE_APK"
+        fi
+        
+        echo ""
+        echo "=== APKs ready for release ==="
         ls -la *.apk 2>/dev/null || echo "No APKs found"
         
     - name: Delete Old Release
       run: |
-        gh release delete v5.0.0 --repo ${{ github.repository }} --yes 2>/dev/null || true
-        git tag -d v5.0.0 2>/dev/null || true
-        git push origin :refs/tags/v5.0.0 2>/dev/null || true
+        gh release delete v0.0.7 --repo ${{ github.repository }} --yes 2>/dev/null || true
+        git tag -d v0.0.7 2>/dev/null || true
+        git push origin :refs/tags/v0.0.7 2>/dev/null || true
         
-    - name: Create Release (Auto)
+    - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        name: "BlackBox Enhanced v5.0.0"
-        tag_name: "v5.0.0"
+        name: "BlackBox Enhanced v0.0.7"
+        tag_name: "v0.0.7"
         body: |
-          ## BlackBox Enhanced v5.0.0
+          ## BlackBox Enhanced v0.0.7
+          
+          **Enhanced by Panxcz & Freebuff** | Original by ALEX502
           
           ### 📱 What's New
+          - App Dumper (dump.cs, il2cpp.h, main.h, game.h)
           - Shell script execution (.sh support)
           - Google login integration
           - Advanced root hiding (Kernel-level)
@@ -203,51 +123,47 @@ jobs:
           - /proc manipulation
           - SELinux enforcing spoof
           
+          ### 📱 App Dumper Features
+          - IL2CPP dump (dump.cs, il2cpp.h)
+          - Unity game dump (main.h, game.h)
+          - DEX extraction
+          - Custom output options
+          
           ### 📲 Installation
           1. Download the APK below
           2. Enable "Unknown Sources" in settings
           3. Install and enjoy!
+          
+          ### 🙏 Credits
+          - Original: ALEX502
+          - Enhanced by: Panxcz & Freebuff
         files: |
-          BlackBox-Enhanced-debug.apk
-          BlackBox-Enhanced-release.apk
+          BlackBox-Enhanced-v0.0.7-debug.apk
+          BlackBox-Enhanced-v0.0.7-release.apk
         draft: false
         prerelease: false
         make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: BlackBox-Enhanced-v0.0.7
+        path: "*.apk"
+        retention-days: 90
+        if-no-files-found: warn
+        
     - name: Build Summary
       run: |
-        echo "## 🎉 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🎉 Build Summary - BlackBox Enhanced v0.0.7" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Generated APKs (Auto-Signed)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-          DEBUG_SIZE=$(ls -lh app/build/outputs/apk/debug/app-debug.apk | awk '{print $5}')
-          echo "- **Debug APK**: \`app-debug.apk\` ($DEBUG_SIZE) - **SIGNED** ✅" >> $GITHUB_STEP_SUMMARY
-        fi
-        if [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-          RELEASE_SIZE=$(ls -lh app/build/outputs/apk/release/app-release-unsigned.apk | awk '{print $5}')
-          echo "- **Release APK**: \`app-release-unsigned.apk\` ($RELEASE_SIZE) - **SIGNED** ✅" >> $GITHUB_STEP_SUMMARY
-        fi
+        echo "- **Debug APK**: BlackBox-Enhanced-v0.0.7-debug.apk" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release APK**: BlackBox-Enhanced-v0.0.7-release.apk" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔐 Integrity Verification" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ APK signed with RSA-2048 + SHA-256" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ APK integrity verified" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Ready for installation" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📲 Android Support" >> $GITHUB_STEP_SUMMARY
-        echo "- Android 5.0 (API 21) - Android 17 (API 35)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔐 Security Features" >> $GITHUB_STEP_SUMMARY
-        echo "- Shell script execution (.sh)" >> $GITHUB_STEP_SUMMARY
-        echo "- Google login support" >> $GITHUB_STEP_SUMMARY
-        echo "- Root hiding (Magisk, SuperSU, Kernel)" >> $GITHUB_STEP_SUMMARY
-        echo "- VPN hiding" >> $GITHUB_STEP_SUMMARY
-        echo "- Fake location with GPS simulation" >> $GITHUB_STEP_SUMMARY
-        echo "- SafetyNet/Play Integrity bypass" >> $GITHUB_STEP_SUMMARY
-        echo "- Frida/Xposed detection bypass" >> $GITHUB_STEP_SUMMARY
-        echo "- Hook detection bypass" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Download" >> $GITHUB_STEP_SUMMARY
+        echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.0.7)" >> $GITHUB_STEP_SUMMARY

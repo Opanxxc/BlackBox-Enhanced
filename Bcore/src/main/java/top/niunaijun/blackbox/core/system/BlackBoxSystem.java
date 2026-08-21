@@ -29,6 +29,7 @@ import top.niunaijun.blackbox.core.system.hidevpn.HideVpnService;
 import top.niunaijun.blackbox.core.system.integrity.IntegrityBypassService;
 import top.niunaijun.blackbox.core.system.bypass.AdvancedBypassService;
 import top.niunaijun.blackbox.core.system.bypass.HookDetectionBypassService;
+import top.niunaijun.blackbox.core.system.dumper.AppDumperService;
 
 import top.niunaijun.blackbox.core.system.user.BUserHandle;
 import top.niunaijun.blackbox.core.system.user.BUserManagerService;
@@ -80,6 +81,7 @@ public class BlackBoxSystem {
         mServices.add(IntegrityBypassService.get());
         mServices.add(AdvancedBypassService.get());
         mServices.add(HookDetectionBypassService.get());
+        mServices.add(AppDumperService.get());
 
         for (ISystemService service : mServices) {
             service.systemReady();
