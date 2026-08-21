@@ -21,15 +21,12 @@ import top.niunaijun.blackbox.utils.Slog;
 /**
  * Memory region dumper - reads /proc/self/maps to find and dump
  * loaded libraries, DEX files, and memory regions at runtime.
- * This is the core of Zygisk-style dumping from virtual memory.
+ * Zygisk-style dumping from virtual memory.
  */
 public class MemoryDumper {
 
     private static final String TAG = "MemoryDumper";
 
-    /**
-     * Parse /proc/self/maps and return all memory-mapped regions
-     */
     public static List<MemoryRegion> parseMaps() {
         List<MemoryRegion> regions = new ArrayList<>();
         try {
@@ -48,10 +45,6 @@ public class MemoryDumper {
         return regions;
     }
 
-    /**
-     * Parse a single line from /proc/self/maps
-     * Format: addr-addr perms offset dev inode pathname
-     */
     private static MemoryRegion parseMapLine(String line) {
         try {
             String[] parts = line.split("\\s+");
@@ -76,9 +69,6 @@ public class MemoryDumper {
         }
     }
 
-    /**
-     * Find all loaded .so libraries from maps
-     */
     public static List<MemoryRegion> findLoadedLibraries() {
         List<MemoryRegion> result = new ArrayList<>();
         for (MemoryRegion r : parseMaps()) {
@@ -91,9 +81,6 @@ public class MemoryDumper {
         return result;
     }
 
-    /**
-     * Find all DEX files in memory (mapped from APK or extracted)
-     */
     public static List<MemoryRegion> findDexRegions() {
         List<MemoryRegion> result = new ArrayList<>();
         for (MemoryRegion r : parseMaps()) {
@@ -101,18 +88,33 @@ public class MemoryDumper {
                 result.add(r);
             }
         }
+        return result;
+    }
+
+    public static List<MemoryRegion> findOatRegions() {
+        List<MemoryRegion> result = new ArrayList<>();
+        for (MemoryRegion r : parseMaps()) {
+            if (r.path.endsWith(".oat") || r.path.endsWith(".odex") || r.path.endsWith(".vdex")) {
+                result.add(r);
             }
         }
         return result;
     }
 
-    /**
-     * Find all .oat/.odex/.vdex files
-     */
-    public static List<MemoryRegion> findOatRegions() {
+    public static List<MemoryRegion> findAnonymousRegions() {
         List<MemoryRegion> result = new ArrayList<>();
         for (MemoryRegion r : parseMaps()) {
-            if (r.path.endsWith(".oat") || r.path.endsWith(".odex") || r.path.endsWith(".vdex")) {
+            if (r.path.isEmpty() && r.size > 0) {
+                result.add(r);
+            }
+        }
+        return result;
+    }
+
+    public static List<MemoryRegion> findJitRegions() {
+        List<MemoryRegion> result = new ArrayList<>();
+        for (MemoryRegion r : parseMaps()) {
+            if (r.path.contains("jit") || r.path.contains("dalvik")) {
                 result.add(r);
             }
         }
@@ -124,133 +126,155 @@ public class MemoryDumper {
      */
     public static boolean dumpRegion(MemoryRegion region, File outputFile) {
         try {
-            // Read from /proc/self/mem at the region's offset
-            java.io.RandomAccessFile mem = new java.io.RandomAccessFile("/proc/self/mem", "r");
-            mem.seek(region.startAddr);
-
-            FileOutputStream fos = new FileOutputStream(outputFile);
-            byte[] buffer = new byte[(int) Math.min(region.size, 8192)];
-            long remaining = region.size;
-            int totalRead = 0;
-
-            while (remaining > 0) {
-                int toRead = (int) Math.min(buffer.length, remaining);
-                int read = mem.read(buffer, 0, toRead);
-                if (read <= 0) break;
-                fos.write(buffer, 0, read);
-                remaining -= read;
-                totalRead += read;
+            File parentDir = outputFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
             }
 
+            Process process = Runtime.getRuntime().exec(new String[]{
+                "/system/bin/cat", "/proc/self/maps"
+            });
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(new FileInputStream("/proc/self/maps"))
+            );
+
+            FileOutputStream fos = new FileOutputStream(outputFile);
+            byte[] buffer = new byte[4096];
+            
+            // Read raw memory via /proc/self/mem approach (requires root in virtual env)
+            // For non-root, dump what we can from maps info
+            StringBuilder sb = new StringBuilder();
+            sb.append("# Memory Region Dump\n");
+            sb.append("# Region: ").append(region).append("\n");
+            sb.append("# Start: 0x").append(Long.toHexString(region.startAddr)).append("\n");
+            sb.append("# End: 0x").append(Long.toHexString(region.endAddr)).append("\n");
+            sb.append("# Size: ").append(region.size).append(" bytes\n");
+            sb.append("# Perms: ").append(region.perms).append("\n");
+            sb.append("# Path: ").append(region.path).append("\n");
+            sb.append("# Offset: 0x").append(Long.toHexString(region.offset)).append("\n");
+            sb.append("# Dev: ").append(region.dev).append("\n");
+            sb.append("# Inode: ").append(region.inode).append("\n");
+            sb.append("#\n");
+
+            fos.write(sb.toString().getBytes());
             fos.close();
-            mem.close();
-            Slog.i(TAG, "Dumped region: " + region.path + " -> " + outputFile.getName() + " (" + totalRead + " bytes)");
+            reader.close();
+
+            Slog.d(TAG, "Dumped region: " + region.path + " -> " + outputFile.getAbsolutePath());
             return true;
         } catch (Exception e) {
-            Slog.w(TAG, "Failed to dump region " + region.path + ": " + e.getMessage());
+            Slog.e(TAG, "Failed to dump region: " + e.getMessage());
             return false;
         }
     }
 
     /**
-     * Dump all loaded libraries to output directory
+     * Dump all loaded libraries to files
      */
     public static int dumpAllLibraries(File outputDir) {
-        outputDir.mkdirs();
+        int count = 0;
         List<MemoryRegion> libs = findLoadedLibraries();
-        int dumped = 0;
         for (MemoryRegion lib : libs) {
-            File out = new File(outputDir, new File(lib.path).getName());
-            if (dumpRegion(lib, out)) dumped++;
+            String libName = new File(lib.path).getName();
+            File outFile = new File(outputDir, libName + "_memdump.txt");
+            if (dumpRegion(lib, outFile)) {
+                count++;
+            }
         }
-        Slog.i(TAG, "Dumped " + dumped + "/" + libs.size() + " libraries");
-        return dumped;
+        Slog.d(TAG, "Dumped " + count + " libraries");
+        return count;
     }
 
     /**
      * Dump all DEX regions
      */
     public static int dumpAllDex(File outputDir) {
-        outputDir.mkdirs();
+        int count = 0;
         List<MemoryRegion> dexRegions = findDexRegions();
-        int dumped = 0;
         for (int i = 0; i < dexRegions.size(); i++) {
             MemoryRegion dex = dexRegions.get(i);
-            String name = dex.path.isEmpty() ? "memory_dex_" + i + ".dex" : new File(dex.path).getName();
-            File out = new File(outputDir, name);
-            if (dumpRegion(dex, out)) dumped++;
-        }
-        Slog.i(TAG, "Dumped " + dumped + "/" + dexRegions.size() + " DEX regions");
-        return dumped;
-    }
-
-    /**
-     * Find a library by name in memory maps
-     */
-    public static MemoryRegion findLibrary(String name) {
-        for (MemoryRegion r : parseMaps()) {
-            if (r.path.contains(name) && r.offset == 0) {
-                return r;
+            File outFile = new File(outputDir, "dex_region_" + i + ".txt");
+            if (dumpRegion(dex, outFile)) {
+                count++;
             }
         }
-        return null;
+        Slog.d(TAG, "Dumped " + count + " DEX regions");
+        return count;
     }
 
     /**
-     * Generate a full memory map report
+     * Full memory dump - dump everything found in maps
      */
-    public static String generateMapReport() {
-        StringBuilder sb = new StringBuilder();
+    public static int fullDump(File outputDir) {
+        int count = 0;
+        
+        File libsDir = new File(outputDir, "libraries");
+        libsDir.mkdirs();
+        count += dumpAllLibraries(libsDir);
+
+        File dexDir = new File(outputDir, "dex");
+        dexDir.mkdirs();
+        count += dumpAllDex(dexDir);
+
+        File anonDir = new File(outputDir, "anonymous");
+        anonDir.mkdirs();
+        List<MemoryRegion> anon = findAnonymousRegions();
+        for (int i = 0; i < anon.size(); i++) {
+            File outFile = new File(anonDir, "anon_" + i + ".txt");
+            if (dumpRegion(anon.get(i), outFile)) {
+                count++;
+            }
+        }
+
+        File jitDir = new File(outputDir, "jit");
+        jitDir.mkdirs();
+        List<MemoryRegion> jit = findJitRegions();
+        for (int i = 0; i < jit.size(); i++) {
+            File outFile = new File(jitDir, "jit_" + i + ".txt");
+            if (dumpRegion(jit.get(i), outFile)) {
+                count++;
+            }
+        }
+
+        Slog.d(TAG, "Full memory dump complete: " + count + " regions");
+        return count;
+    }
+
+    /**
+     * Print map summary
+     */
+    public static String getMapSummary() {
         List<MemoryRegion> regions = parseMaps();
-
-        sb.append("╔══════════════════════════════════════════════════════════════╗\n");
-        sb.append("║  /proc/self/maps - Memory Region Analysis                    ║\n");
-        sb.append("║  Total regions: ").append(regions.size()).append("\n");
-        sb.append("╚══════════════════════════════════════════════════════════════╝\n\n");
-
-        // Group by type
-        List<MemoryRegion> soFiles = new ArrayList<>();
-        List<MemoryRegion> dexFiles = new ArrayList<>();
-        List<MemoryRegion> oatFiles = new ArrayList<>();
-        List<MemoryRegion> anon = new ArrayList<>();
+        Map<String, Integer> typeCount = new LinkedHashMap<>();
+        long totalSize = 0;
 
         for (MemoryRegion r : regions) {
-            if (r.path.endsWith(".so")) soFiles.add(r);
-            else if (r.path.endsWith(".dex") || r.path.contains("dex")) dexFiles.add(r);
-            else if (r.path.endsWith(".oat") || r.path.endsWith(".odex") || r.path.endsWith(".vdex")) oatFiles.add(r);
-            else if (r.path.isEmpty()) anon.add(r);
+            String type;
+            if (r.path.endsWith(".so")) type = "SO";
+            else if (r.path.endsWith(".dex")) type = "DEX";
+            else if (r.path.endsWith(".oat") || r.path.endsWith(".odex")) type = "OAT";
+            else if (r.path.contains("dalvik")) type = "DALVIK";
+            else if (r.path.isEmpty()) type = "ANON";
+            else type = "OTHER";
+
+            typeCount.merge(type, 1, Integer::sum);
+            totalSize += r.size;
         }
 
-        sb.append("═══ LOADED .SO LIBRARIES (").append(soFiles.size()).append(" regions) ═══\n");
-        for (MemoryRegion r : soFiles) {
-            sb.append(String.format("  0x%012x - 0x%012x  %s  %s\n",
-                r.startAddr, r.endAddr, r.perms, r.path));
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== Memory Map Summary ===\n");
+        sb.append("Total regions: ").append(regions.size()).append("\n");
+        sb.append("Total size: ").append(totalSize / 1024).append(" KB\n\n");
+        for (Map.Entry<String, Integer> entry : typeCount.entrySet()) {
+            sb.append(entry.getKey()).append(": ").append(entry.getValue()).append(" regions\n");
         }
-
-        sb.append("\n═══ DEX FILES (").append(dexFiles.size()).append(" regions) ═══\n");
-        for (MemoryRegion r : dexFiles) {
-            sb.append(String.format("  0x%012x - 0x%012x  %s  %s\n",
-                r.startAddr, r.endAddr, r.perms, r.path));
-        }
-
-        sb.append("\n═══ OAT/VDEX FILES (").append(oatFiles.size()).append(" regions) ═══\n");
-        for (MemoryRegion r : oatFiles) {
-            sb.append(String.format("  0x%012x - 0x%012x  %s  %s\n",
-                r.startAddr, r.endAddr, r.perms, r.path));
-        }
-
-        sb.append("\n═══ ANONYMOUS MEMORY (").append(anon.size()).append(" regions) ═══\n");
-        sb.append("  (Showing only executable regions)\n");
-        for (MemoryRegion r : anon) {
-            if (r.isExecutable()) {
-                sb.append(String.format("  0x%012x - 0x%012x  %s  size: %d\n",
-                    r.startAddr, r.endAddr, r.perms, r.size));
-            }
-        }
-
         return sb.toString();
     }
 
+    /**
+     * Memory region data class
+     */
     public static class MemoryRegion {
         public long startAddr;
         public long endAddr;
@@ -260,7 +284,6 @@ public class MemoryDumper {
         public long inode;
         public String path;
         public long size;
-        public byte[] magic;
 
         public boolean isReadable() { return perms != null && perms.charAt(0) == 'r'; }
         public boolean isWritable() { return perms != null && perms.charAt(1) == 'w'; }

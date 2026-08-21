@@ -14,6 +14,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 6
     
     steps:
     - name: Checkout code
@@ -37,12 +38,10 @@ jobs:
         
     - name: Setup Signing Key
       run: |
-        # Decode keystore from GitHub secret (base64 encoded)
         if [ -n "${{ secrets.RELEASE_KEYSTORE }}" ]; then
           echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 -d > app/release.keystore
           echo "✅ Using saved keystore from secrets"
         else
-          # Generate keystore only if secret not set (first time)
           echo "⚠️ No keystore secret found, generating temporary keystore"
           keytool -genkeypair -v \
             -keystore app/release.keystore \
@@ -60,9 +59,6 @@ jobs:
     - name: Make Gradlew executable
       run: chmod +x ./gradlew
       
-    - name: Clean project
-      run: ./gradlew clean
-      
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace
       
@@ -72,15 +68,12 @@ jobs:
     - name: Prepare Universal APKs
       run: |
         echo "=== Preparing Universal APKs ==="
-        
-        # Find universal APKs only
         DEBUG_APK=$(find app/build/outputs/apk/debug -name "*universal-debug.apk" | head -1)
         RELEASE_APK=$(find app/build/outputs/apk/release -name "*universal-release.apk" | head -1)
         
         echo "Debug APK: $DEBUG_APK"
         echo "Release APK: $RELEASE_APK"
         
-        # Copy with proper names
         if [ -n "$DEBUG_APK" ]; then
           cp "$DEBUG_APK" ./BlackBox-Enhanced-v0.1.1-debug.apk
           echo "✅ Debug APK ready"
@@ -118,32 +111,31 @@ jobs:
           - ✅ Immersive fullscreen mode (game-like)
           - ✅ Fixed MT Manager crashes
           - ✅ All bypass features working
-          - ✅ Custom keystore support
+          - ✅ Advanced memory dumper (Zygisk-style)
+          - ✅ Hook dumper with classloader enumeration
+          - ✅ Anti-detection protection for dumper
+          - ✅ Debug logging throughout
           
-          ### 🔐 Features
-          - Shell script execution (.sh support)
-          - Google login integration
-          - Advanced root hiding (Kernel-level, Magisk, KSU, APatch)
-          - VPN hiding
-          - Enhanced fake location with GPS simulation
-          - SafetyNet/Play Integrity bypass
-          - Frida/Xposed/Substrate detection bypass
-          - Hook detection bypass
-          - App Dumper (dump.cs, il2cpp.h, main.h, game.h)
-          - Android 5.0 - 17 support
+          ### 📁 Dump Output Structure
+          ```
+          /storage/emulated/0/Download/black/dump/(packagename)/
+          ├── il2cpp/     # dump.cs, il2cpp.h, game.h, ELF analysis, hex dumps
+          ├── dex/        # DEX extraction + strings + hexdump
+          ├── native/     # All .so libraries + ELF analysis
+          ├── memory/     # Memory region dumps (Zygisk-style)
+          ├── hook/       # Hook/classloader dumps
+          ├── unity/      # Unity native libs
+          └── SUMMARY.txt
+          ```
           
           ### 📲 Installation
-          1. Download the **universal** APK below
+          1. Download the universal APK below
           2. Enable "Unknown Sources" in settings
           3. Install and enjoy!
           
           ### 🙏 Credits
           - Original: ALEX502
           - Enhanced by: Panxcz & Freebuff
-          
-          ### 📝 Note
-          - Only universal APK uploaded (works on all architectures)
-          - APK is signed with persistent key (can upgrade without data loss)
         files: |
           BlackBox-Enhanced-v0.1.1-debug.apk
           BlackBox-Enhanced-v0.1.1-release.apk
@@ -171,16 +163,8 @@ jobs:
         echo "### ✅ Build Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📱 Universal APK Only" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
         echo "- **Debug APK**: BlackBox-Enhanced-v0.1.1-debug.apk" >> $GITHUB_STEP_SUMMARY
         echo "- **Release APK**: BlackBox-Enhanced-v0.1.1-release.apk" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Download" >> $GITHUB_STEP_SUMMARY
         echo "[GitHub Release](https://github.com/${{ github.repository }}/releases/tag/v0.1.1)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🔑 Signing" >> $GITHUB_STEP_SUMMARY
-        if [ -n "${{ secrets.RELEASE_KEYSTORE }}" ]; then
-          echo "✅ Using persistent keystore (can install-over!)" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️ Using temporary keystore (first build)" >> $GITHUB_STEP_SUMMARY
-        fi

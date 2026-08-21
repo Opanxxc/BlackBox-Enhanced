@@ -281,7 +281,7 @@ public class AppDumperService implements ISystemService {
             memDir.mkdirs();
             MemoryDumper.dumpAllLibraries(new File(memDir, "libs"));
             MemoryDumper.dumpAllDex(new File(memDir, "dex"));
-            writeToFile(new File(memDir, "maps.txt"), MemoryDumper.generateMapReport());
+            writeToFile(new File(memDir, "maps.txt"), MemoryDumper.getMapSummary());
             Slog.i(TAG, "  Memory dump completed");
         } catch (Exception e) {
             Slog.w(TAG, "  Memory dump failed: " + e.getMessage());
